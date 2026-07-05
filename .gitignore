@@ -1,0 +1,33 @@
+# ============================================================
+# obsidian-yk-script .gitignore
+# ============================================================
+
+# 凭据
+.env
+.env.local
+.env.*.local
+
+# 状态 / 日志
+data/state.json
+data/continuity/prev_summaries.json
+logs/
+*.log
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 测试
+coverage/
+.coverage
+.nyc_output/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# 输出
+output/
