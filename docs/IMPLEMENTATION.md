@@ -25,13 +25,13 @@ obsidian-yk-script/
 ├── requirements.txt                    # requests / PyYAML / python-dotenv / pytest
 │
 ├── data/
-│   ├── characters/
-│   │   ├── youkei.json                 # ✅ 已落地
+│   ├── characters/                     # 📥 老板在 GitHub UI 手动编辑 (源 = 本仓)
+│   │   ├── youkei.json                 # ✅ 已落地 (源 = 仓)
 │   │   ├── protagonist.json            # ⏳ P1 落地 (化名"上坤"+只出手)
 │   │   └── apartment.json              # ⏳ P1 落地 (6 室 + 5 外出备选)
-│   ├── seasons/
+│   ├── seasons/                        # 📥 大纲: 老板手动编辑 → GitHub 拉取
 │   │   └── season-01.json              # ✅ 已落地 (12 集 + 节奏四段)
-│   ├── knowledge/references/           # ⏳ P3 落地 (fork from short-drama)
+│   ├── knowledge/references/           # 🔒 fork 后冻结 (不用 GitHub 拉, 本地读)
 │   │   ├── opening-rules.md
 │   │   ├── rhythm-curve.md
 │   │   ├── hook-design.md
@@ -42,6 +42,11 @@ obsidian-yk-script/
 │   │   ├── compliance-checklist.md
 │   │   ├── UPSTREAM-README.md          # 上游项目说明 (我们怎么 fork 的)
 │   │   └── LICENSE-short-drama.txt     # MIT 原文
+│   ├── cache/                          # 🆕 v0.3 GitHub 拉取缓存 (gitignored)
+│   │   ├── season-01.json              # ← 从 GitHub 拉的大纲
+│   │   ├── season-01.sha               # ← sha 检测变更
+│   │   ├── youkei.json                 # ← 从 GitHub 拉的角色卡
+│   │   └── protagonist.json            # ← 从 GitHub 拉的主角卡
 │   └── state/                          # gitignored, 运行时生成
 │       ├── state.json                  # {season_no, episode, last_run_at, ...}
 │       └── memory.json                 # 角色状态机 + 道具 + 时间线
@@ -55,16 +60,20 @@ obsidian-yk-script/
 │
 ├── src/
 │   ├── __init__.py
-│   ├── daily.py                        # ⏳ P8 主入口 orchestrator
+│   ├── daily.py                        # ⏳ P8 主入口 orchestrator (集成 outline_fetcher + github_backup + wechat)
 │   ├── screen_writer.py                # ⏳ P5 Agent 1: 写
 │   ├── critic.py                       # ⏳ P6 Agent 2: 审
 │   ├── memory_manager.py               # ⏳ P7 Agent 3: 管
 │   ├── markdown_renderer.py            # ⏳ P8 JSON → MD
 │   ├── hmac_client.py                  # ⏳ P8 复用 obsidian-journal
 │   ├── state.py                        # ⏳ P8 状态读写 (state.json + memory.json)
-│   ├── llm_client.py                   # ⏳ P5 minimax M3 wrapper (Anthropic 兼容)
+│   ├── llm_client.py                   # ⏳ P5 minimax M2.7 wrapper (Anthropic 兼容)
 │   ├── logger.py                       # ⏳ P8 日志 (滚动 10MB × 5)
-│   └── types.py                        # ⏳ P5 Pydantic 数据类 (EpisodeScript/Shot/Candidate)
+│   ├── types.py                        # ⏳ P5 Pydantic 数据类 (EpisodeScript/Shot/Candidate)
+│   ├── 🆕 backup_reader.py            # ⏳ P12 GitHub Contents API 只读 (拉 outline/characters)
+│   ├── 🆕 outline_fetcher.py           # ⏳ P12 sha 检测 + 缓存 + fallback 本地
+│   ├── 🆕 github_backup.py             # ⏳ P13 每日生成内容备份到 obsidian-novel-backups/yk-script/
+│   └── 🆕 wechat_notifier.py           # ⏳ P14 复用 publisher 模式: pending.txt + cron run + 20s
 │
 ├── scripts/
 │   ├── publish-today.py                # ⏳ P8 手动触发 (复用 daily.main)
@@ -72,7 +81,9 @@ obsidian-yk-script/
 │   ├── dry-run.py                      # ⏳ P10 不推送, 仅生成 + 本地预览
 │   ├── regenerate.py                   # ⏳ P10 重写指定集
 │   ├── seed-state.py                   # ⏳ P0 初始化 state.json + memory.json
-│   └── render-preview.py               # ⏳ P8 单独渲染 Markdown 调试
+│   ├── render-preview.py               # ⏳ P8 单独渲染 Markdown 调试
+│   ├── pull-outline.py                 # 🆕 P12 手动强制拉 outline (调试用)
+│   └── verify-backup.py                # 🆕 P13 验证今日 backup 已上传
 │
 ├── systemd/
 │   ├── yk-script.service               # ⏳ P9 Type=oneshot
@@ -83,7 +94,7 @@ obsidian-yk-script/
 │
 └── tests/
     ├── __init__.py
-    ├── conftest.py                     # fixtures: sample_episode / mock_llm / tmp_state
+    ├── conftest.py                     # fixtures: sample_episode / mock_llm / tmp_state / mock_github
     ├── unit/
     │   ├── test_screen_writer.py       # ⏳ P10 mock LLM, 验 3 候选生成 + prompt 注入
     │   ├── test_critic.py              # ⏳ P10 mock LLM, 验 5 维评分 + Island 循环
@@ -91,11 +102,18 @@ obsidian-yk-script/
     │   ├── test_markdown_renderer.py   # ⏳ P10 验 JSON → MD
     │   ├── test_state.py               # ⏳ P10 验 state.json / memory.json 读写
     │   ├── test_llm_client.py          # ⏳ P10 验 minimax 调用 + retry + stream
-    │   └── test_hmac_client.py         # ⏳ P10 验 HMAC 签名 + POST
+    │   ├── test_hmac_client.py         # ⏳ P10 验 HMAC 签名 + POST
+    │   ├── 🆕 test_backup_reader.py    # ⏳ P12 requests-mock 验 GitHub API + retry
+    │   ├── 🆕 test_outline_fetcher.py  # ⏳ P12 验 sha 检测 + 缓存 fallback
+    │   ├── 🆕 test_github_backup.py    # ⏳ P13 验 PUT 文件 + base64 + sha 必传
+    │   └── 🆕 test_wechat_notifier.py  # ⏳ P14 验 pending.txt + cron run + 20s sleep + unlink
     └── integration/
         ├── test_daily_e2e.py           # ⏳ P10 全链路 mock LLM, 验 daily.py 闭环
         ├── test_knowledge_loading.py   # ⏳ P10 验 8 references 按 stage 注入
-        └── test_state_persistence.py   # ⏳ P10 验多次跑后 state 推进正确
+        ├── test_state_persistence.py   # ⏳ P10 验多次跑后 state 推进正确
+        ├── 🆕 test_outline_change_flow.py   # ⏳ P12 验老板改 GitHub → 第二天自动用新大纲
+        ├── 🆕 test_backup_flow.py           # ⏳ P13 验生成 → backup → index.json 追加
+        └── 🆕 test_wechat_notify_flow.py     # ⏳ P14 验成功/失败 → pending.txt → cron run (mock subprocess)
 ```
 
 ---
@@ -1013,6 +1031,12 @@ from .markdown_renderer import render_episode
 from .hmac_client import publish_to_obsidian
 from .state import StateStore
 from .logger import setup_logger
+from .outline_fetcher import OutlineFetcher        # 🆕 P12
+from .backup_reader import BackupReader           # 🆕 P12
+from .github_backup import GithubBackup, GithubBackupConfig  # 🆕 P13
+from .wechat_notifier import (                    # 🆕 P14
+    WechatNotifierConfig, notify_success, notify_failure,
+)
 
 logger = setup_logger("yk-script")
 
@@ -1025,8 +1049,23 @@ def main(dry_run: bool = False, force_episode: int | None = None) -> int:
     # ① 加载所有数据
     state_store = StateStore("data/state/state.json")
     state = state_store.load()
-    season = json.loads(Path(f"data/seasons/season-{state['season_no']:02d}.json").read_text())
-    characters = _load_characters()
+
+    # ①a 🆕 从 GitHub 拉取最新 season 大纲 (老板手动编辑后能用上)
+    #     失败 → fallback 本地 data/seasons/season-XX.json
+    outline_fetcher = OutlineFetcher(
+        repo="blackclaw0318/obsidian-yk-script",
+        token=os.environ["GITHUB_BACKUP_TOKEN"],
+        cache_dir=Path("data/cache"),
+    )
+    season = outline_fetcher.fetch_season(state["season_no"])
+    logger.info(
+        f"outline fetched: season={state['season_no']}, "
+        f"sha={outline_fetcher.last_sha[:8] if outline_fetcher.last_sha else 'cache'}..."
+    )
+
+    characters = _load_characters_from_github_or_local(
+        state["season_no"], outline_fetcher
+    )
     memory_mgr = MemoryManager("data/state/memory.json")
     knowledge = _load_knowledge_for_stage(
         season["episodes"][state["episode_idx"]]["stage"]
@@ -1086,6 +1125,13 @@ def main(dry_run: bool = False, force_episode: int | None = None) -> int:
     md = render_episode(best_script)
 
     # ⑦ 推送 (or dry-run 跳过)
+    post_url = None
+    if dry_run:
+        logger.info(f"DRY-RUN: would publish {best_script.title}")
+        Path("output").mkdir(exist_ok=True)
+        Path(f"output/{best_script.title}.md").write_text(md, encoding="utf-8")
+    else:
+        result = publish_to_obsidian(
     if dry_run:
         logger.info(f"DRY-RUN: would publish {best_script.title}")
         Path("output").mkdir(exist_ok=True)
@@ -1104,6 +1150,50 @@ def main(dry_run: bool = False, force_episode: int | None = None) -> int:
             logger.error(f"Publish failed: {result['error']}")
             _alert_failure(episode_def, [result["error"]])
             return 1
+        post_url = result.get("post_url")
+
+    # ⑧ 🆕 备份到 GitHub (失败不阻塞, 只记警告)
+    try:
+        backup_cfg = GithubBackupConfig.from_env()
+        backup = GithubBackup(backup_cfg)
+        backup.backup_episode(
+            season_no=state["season_no"],
+            episode_no=episode_def["ep"],
+            script=best_script,
+            markdown=md,
+            post_url=post_url or "",
+            llm_usage={"model": "MiniMax-M2.7", "duration_ms": int(duration * 1000)},
+        )
+        logger.info(f"✅ GitHub backup done for S{state['season_no']:02d}-EP{episode_def['ep']:02d}")
+    except Exception as e:
+        # 备份失败 → log warning + 微信告警, 不 throw
+        logger.warning(f"⚠️ GitHub backup failed (non-fatal): {e}")
+        try:
+            wechat_cfg = WechatNotifierConfig.from_env()
+            notify_failure(
+                wechat_cfg,
+                season_no=state["season_no"],
+                episode_no=episode_def["ep"],
+                title=best_script.title,
+                error_short=f"GitHub 备份失败 (主推送已成功): {type(e).__name__}",
+            )
+        except Exception:
+            pass
+
+    # ⑨ 🆕 微信通知 (成功)
+    try:
+        wechat_cfg = WechatNotifierConfig.from_env()
+        notify_success(
+            wechat_cfg,
+            season_no=state["season_no"],
+            episode_no=episode_def["ep"],
+            title=best_script.title,
+            score=best_score.total,
+            hook_type=best_script.hook_type or "—",
+            post_url=post_url or "",
+        )
+    except Exception as e:
+        logger.warning(f"WeChat notify failed (non-fatal): {e}")
 
     # ⑧ 更新 memory + state
     memory_mgr.memory = memory_mgr.extract_state(best_script)
@@ -1124,12 +1214,19 @@ def main(dry_run: bool = False, force_episode: int | None = None) -> int:
     return 0
 
 
-def _load_characters() -> dict:
-    return {
-        "protagonist": json.loads(Path("data/characters/protagonist.json").read_text()),
-        "youkei": json.loads(Path("data/characters/youkei.json").read_text()),
-        "apartment": json.loads(Path("data/characters/apartment.json").read_text()),
-    }
+def _load_characters_from_github_or_local(season_no: int, fetcher: OutlineFetcher) -> dict:
+    """角色卡优先从 GitHub 拉 (boss 可手动编辑), 失败 fallback 本地"""
+    chars = {}
+    for name in ["protagonist", "youkei", "apartment"]:
+        try:
+            data = fetcher.fetch_character(season_no, name)
+            chars[name] = data
+        except Exception as e:
+            logger.warning(f"fetch {name}.json from GitHub failed ({e}), fallback local")
+            chars[name] = json.loads(
+                Path(f"data/characters/{name}.json").read_text(encoding="utf-8")
+            )
+    return chars
 
 
 def _load_knowledge_for_stage(stage: str) -> dict[str, str]:
@@ -1180,6 +1277,594 @@ if __name__ == "__main__":
 
 ---
 
+### 3.7 🆕 `src/backup_reader.py` — GitHub Contents API 只读客户端 (P12)
+
+```python
+"""GitHub Contents API 只读客户端 — 拉 season 大纲 + 角色卡
+
+设计原则 (对标 obsidian-novel-publisher/src/backup_reader.py):
+- 走 Contents API GET /repos/{owner}/{repo}/contents/{path}
+- 不 clone 仓 (轻量, 老板在 GitHub UI 手编 → publisher 拉最新)
+- 4xx 不重试, 5xx / 网络错重试 3 次 (1s/2s/4s 指数退避)
+- 返 (content, sha) — sha 给 caller 做变更检测
+
+凭据: GITHUB_BACKUP_TOKEN (Fine-grained PAT, 至少 Contents: Read on obsidian-yk-script)
+"""
+from __future__ import annotations
+import base64
+import json
+import logging
+import time
+from pathlib import Path
+from typing import Any
+
+import requests
+
+logger = logging.getLogger(__name__)
+
+GITHUB_API_BASE = "https://api.github.com"
+DEFAULT_TIMEOUT_S = 30
+DEFAULT_MAX_RETRIES = 3
+_RETRY_BACKOFF_S = (1, 2, 4)
+
+
+class BackupReaderError(Exception):
+    pass
+
+
+class BackupReader:
+    def __init__(
+        self,
+        repo: str,
+        token: str,
+        branch: str = "main",
+        *,
+        timeout_s: int = DEFAULT_TIMEOUT_S,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        api_base: str = GITHUB_API_BASE,
+    ):
+        if "/" not in repo:
+            raise ValueError(f"repo 必须是 'owner/name' 格式: {repo!r}")
+        if not token or not token.strip():
+            raise ValueError("token 不能为空")
+        self.owner, self.name = repo.split("/", 1)
+        self.token = token
+        self.branch = branch
+        self.timeout_s = timeout_s
+        self.max_retries = max_retries
+        self.api_base = api_base.rstrip("/")
+
+    def fetch_file(self, path: str) -> dict[str, Any]:
+        """拉单个文件 — 返 {content, sha, size, path}
+
+        Raises:
+            BackupReaderError: 4xx 参数错 / 重试耗尽
+        """
+        url = f"{self.api_base}/repos/{self.owner}/{self.name}/contents/{path}"
+        params = {"ref": self.branch}
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        last_err = None
+        for attempt in range(self.max_retries):
+            try:
+                resp = requests.get(
+                    url, params=params, headers=headers,
+                    timeout=self.timeout_s,
+                )
+                if 400 <= resp.status_code < 500:
+                    # 4xx 不重试 (401 token 错 / 404 文件不存在)
+                    raise BackupReaderError(
+                        f"GitHub 4xx {resp.status_code}: {resp.text[:200]}"
+                    )
+                resp.raise_for_status()
+                data = resp.json()
+                content_bytes = base64.b64decode(data["content"])
+                return {
+                    "content": content_bytes.decode("utf-8"),
+                    "sha": data["sha"],
+                    "size": data["size"],
+                    "path": data["path"],
+                }
+            except requests.RequestException as e:
+                last_err = e
+                if attempt < self.max_retries - 1:
+                    wait = _RETRY_BACKOFF_S[attempt]
+                    logger.warning(
+                        f"[backup_reader] fetch {path} 失败, "
+                        f"{wait}s 后重试 ({attempt+1}/{self.max_retries}): {e}"
+                    )
+                    time.sleep(wait)
+        raise BackupReaderError(
+            f"fetch {path} 重试 {self.max_retries} 次耗尽: {last_err}"
+        )
+
+    def fetch_json(self, path: str) -> dict[str, Any]:
+        """拉 + 解析 JSON"""
+        result = self.fetch_file(path)
+        return json.loads(result["content"])
+```
+
+---
+
+### 3.8 🆕 `src/outline_fetcher.py` — 大纲拉取 + sha 缓存 + fallback (P12)
+
+```python
+"""大纲拉取器 — 老板手编 GitHub → publisher 拉 → sha 检测变更
+
+关键设计:
+- 每次 daily 启动先拉 GitHub → 拿 (content, sha)
+- 对比 data/cache/season-XX.sha 旧 sha:
+  - 变了 → 用新的, log '老板改了新大纲'
+  - 没变 → 用缓存加速 (不用再解析)
+- GitHub 拉失败 → fallback 本地 data/seasons/season-XX.json
+  - 本地再无 → 抛错 (启动失败, 不准跑)
+
+缓存路径:
+  data/cache/season-XX.json  ← 内容
+  data/cache/season-XX.sha   ← sha (单行字符串)
+  data/cache/<char>.json     ← 角色卡
+"""
+from __future__ import annotations
+import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+
+from .backup_reader import BackupReader, BackupReaderError
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_CACHE_DIR = Path("data/cache")
+
+
+@dataclass
+class FetchResult:
+    content: dict | str
+    sha: str
+    is_changed: bool   # 相对上次缓存, sha 变了 = True
+    cache_path: Path
+    error: str | None = None  # GitHub 拉取失败时记录 (但仍用缓存/本地)
+
+
+class OutlineFetcher:
+    def __init__(self, repo: str, token: str, cache_dir: Path = DEFAULT_CACHE_DIR):
+        self.reader = BackupReader(repo=repo, token=token)
+        self.cache_dir = cache_dir
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.last_sha: str | None = None
+
+    def _cache_paths(self, remote_path: str) -> tuple[Path, Path]:
+        """从 'data/seasons/season-01.json' → ('cache/season-01.json', 'cache/season-01.sha')"""
+        # 路径扁平化: data/seasons/season-01.json → season-01.json
+        #              data/characters/youkei.json → youkei.json
+        basename = Path(remote_path).name
+        return self.cache_dir / basename, self.cache_dir / f"{basename}.sha"
+
+    def _read_cached_sha(self, sha_path: Path) -> str | None:
+        if not sha_path.exists():
+            return None
+        return sha_path.read_text(encoding="utf-8").strip() or None
+
+    def _write_cache(
+        self, content_path: Path, sha_path: Path, content: str, sha: str
+    ) -> None:
+        """atomic write — 先写 .tmp, 再 rename"""
+        tmp = content_path.with_suffix(content_path.suffix + ".tmp")
+        tmp.write_text(content, encoding="utf-8")
+        tmp.replace(content_path)  # atomic
+        sha_path.write_text(sha, encoding="utf-8")
+
+    def fetch_season(self, season_no: int) -> dict:
+        """拉 season 大纲 (GitHub → cache → 本地 fallback)"""
+        return self._fetch_dict(
+            remote_path=f"data/seasons/season-{season_no:02d}.json",
+            fallback_local=f"data/seasons/season-{season_no:02d}.json",
+        )
+
+    def fetch_character(self, season_no: int, char_name: str) -> dict:
+        """拉角色卡 (GitHub → cache → 本地 fallback)"""
+        return self._fetch_dict(
+            remote_path=f"data/characters/{char_name}.json",
+            fallback_local=f"data/characters/{char_name}.json",
+        )
+
+    def _fetch_dict(self, remote_path: str, fallback_local: str) -> dict:
+        content_path, sha_path = self._cache_paths(remote_path)
+        old_sha = self._read_cached_sha(sha_path)
+
+        # 1. 尝试 GitHub
+        try:
+            result = self.reader.fetch_file(remote_path)
+            new_sha = result["sha"]
+            self.last_sha = new_sha
+
+            if new_sha != old_sha:
+                # 老板改了新大纲
+                self._write_cache(content_path, sha_path, result["content"], new_sha)
+                logger.info(
+                    f"📥 outline changed: {remote_path} "
+                    f"sha={old_sha[:8] if old_sha else 'None'} → {new_sha[:8]}"
+                )
+                is_changed = True
+            else:
+                logger.debug(f"outline unchanged: {remote_path} sha={new_sha[:8]}")
+                is_changed = False
+
+            return json.loads(result["content"])
+
+        except BackupReaderError as e:
+            logger.warning(
+                f"⚠️ GitHub fetch {remote_path} failed: {e}, "
+                f"trying cache + local fallback"
+            )
+            # 2. Fallback: cache
+            if content_path.exists():
+                logger.info(f"using cached: {content_path}")
+                self.last_sha = old_sha
+                return json.loads(content_path.read_text(encoding="utf-8"))
+            # 3. Fallback: 本地
+            local_path = Path(fallback_local)
+            if local_path.exists():
+                logger.info(f"using local: {local_path}")
+                return json.loads(local_path.read_text(encoding="utf-8"))
+            # 4. 全失败
+            raise RuntimeError(
+                f"Cannot load {remote_path}: GitHub 404 + cache 缺失 + 本地缺失"
+            )
+```
+
+---
+
+### 3.9 🆕 `src/github_backup.py` — 每日生成内容备份 (P13)
+
+```python
+"""每日生成内容备份到 obsidian-novel-backups 仓 yk-script/ 子路径
+
+设计 (对标 obsidian-novel-publisher/src/github_backup.py):
+- 复用 publisher 的 obsidian-novel-backups 私仓 (不新建仓库)
+- 写入路径:
+    truth/scripts/s01/ep05.md         ← 渲染后的 Markdown
+    truth/scripts/s01/ep05.json       ← EpisodeScript JSON (含 critic score)
+    truth/scripts/index.json          ← 季索引 (追加, 不覆盖)
+    CHANGELOG.md                      ← 每日汇总 (追加)
+
+凭据: GITHUB_BACKUP_TOKEN (Fine-grained PAT, Contents: Read+Write on obsidian-novel-backups)
+"""
+from __future__ import annotations
+import base64
+import json
+import logging
+import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+
+import requests
+
+from .backup_reader import BackupReader
+from .types import EpisodeScript
+
+logger = logging.getLogger(__name__)
+
+GITHUB_API_BASE = "https://api.github.com"
+DEFAULT_TIMEOUT_S = 30
+DEFAULT_MAX_RETRIES = 3
+_RETRY_BACKOFF_S = (1, 2, 4)
+
+
+@dataclass(frozen=True)
+class GithubBackupConfig:
+    enabled: bool
+    repo: str          # "blackclaw0318/obsidian-novel-backups"
+    token: str
+    branch: str = "main"
+
+    @classmethod
+    def from_env(cls) -> GithubBackupConfig:
+        import os
+        return cls(
+            enabled=os.environ.get("GITHUB_BACKUP_ENABLED", "true").lower()
+            in ("true", "1", "yes"),
+            repo=os.environ.get("GITHUB_BACKUP_REPO", "blackclaw0318/obsidian-novel-backups"),
+            token=os.environ.get("GITHUB_BACKUP_TOKEN", ""),
+        )
+
+
+class GithubBackupError(Exception):
+    pass
+
+
+class GithubBackup:
+    """每日生成内容 → 备份到 obsidian-novel-backups/yk-script/"""
+
+    def __init__(self, cfg: GithubBackupConfig):
+        self.cfg = cfg
+        if "/" not in cfg.repo:
+            raise ValueError(f"repo 必须是 'owner/name': {cfg.repo!r}")
+        self.owner, self.name = cfg.repo.split("/", 1)
+        # 复用 reader 拿 sha (GET /contents)
+        self._reader = BackupReader(repo=cfg.repo, token=cfg.token, branch=cfg.branch)
+
+    def backup_episode(
+        self,
+        *,
+        season_no: int,
+        episode_no: int,
+        script: EpisodeScript,
+        markdown: str,
+        post_url: str,
+        llm_usage: dict,
+    ) -> dict:
+        """备份单集内容 (md + json + index 追加 + changelog)
+
+        Returns: {success: bool, paths: [...], error: str|None}
+        """
+        if not self.cfg.enabled:
+            logger.info("GitHub backup disabled (GITHUB_BACKUP_ENABLED=false)")
+            return {"success": False, "paths": [], "error": "disabled"}
+
+        season_str = f"s{season_no:02d}"
+        ep_str = f"ep{episode_no:02d}"
+        base = f"yk-script/truth/scripts/{season_str}"
+
+        paths_written = []
+
+        # 1. Markdown
+        md_path = f"{base}/{ep_str}.md"
+        self._put_file(md_path, markdown, f"feat(yk-script): S{season_no:02d}-EP{episode_no:02d} {script.title} (markdown)")
+        paths_written.append(md_path)
+
+        # 2. JSON (EpisodeScript dump + critic + meta)
+        json_path = f"{base}/{ep_str}.json"
+        meta = {
+            **script.model_dump(),
+            "post_url": post_url,
+            "llm_usage": llm_usage,
+            "backup_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self._put_file(
+            json_path,
+            json.dumps(meta, ensure_ascii=False, indent=2),
+            f"feat(yk-script): S{season_no:02d}-EP{episode_no:02d} {script.title} (json meta)",
+        )
+        paths_written.append(json_path)
+
+        # 3. Index (追加, 不覆盖)
+        index_path = f"{base}/index.json"
+        try:
+            existing = self._reader.fetch_file(index_path)
+            index = json.loads(existing["content"])
+        except Exception:
+            index = {"season_no": season_no, "episodes": []}
+
+        # 防重复
+        if not any(ep.get("episode_no") == episode_no for ep in index["episodes"]):
+            index["episodes"].append({
+                "episode_no": episode_no,
+                "title": script.title,
+                "logline": script.logline,
+                "critic_score": script.critic_score.total if script.critic_score else None,
+                "hook_type": script.hook_type,
+                "post_url": post_url,
+                "markdown_path": md_path,
+                "json_path": json_path,
+                "created_at": meta["backup_at"],
+            })
+            self._put_file(
+                index_path,
+                json.dumps(index, ensure_ascii=False, indent=2),
+                f"chore(yk-script): S{season_no:02d} index 追加 EP{episode_no:02d}",
+            )
+            paths_written.append(index_path)
+
+        # 4. CHANGELOG (追加)
+        changelog_path = "yk-script/CHANGELOG.md"
+        try:
+            existing = self._reader.fetch_file(changelog_path)
+            old_content = existing["content"]
+        except Exception:
+            old_content = "# yk-script 变更日志\n\n"
+
+        new_line = (
+            f"## {meta['backup_at'][:10]} · S{season_no:02d}-EP{episode_no:02d} {script.title}\n"
+            f"- 评分: {script.critic_score.total if script.critic_score else '?'}/50\n"
+            f"- 钩子: {script.hook_type or '—'}\n"
+            f"- 博客: {post_url or '(未推送)'}\n\n"
+        )
+        self._put_file(
+            changelog_path,
+            old_content + new_line,
+            f"docs(yk-script): CHANGELOG 追加 EP{episode_no:02d}",
+        )
+        paths_written.append(changelog_path)
+
+        logger.info(f"✅ GitHub backup done: {paths_written}")
+        return {"success": True, "paths": paths_written, "error": None}
+
+    def _put_file(self, path: str, content: str, commit_message: str) -> None:
+        """PUT /contents/{path} — 覆盖文件需先 GET 拿 sha
+
+        Raises: GithubBackupError (重试耗尽 / 4xx)
+        """
+        url = f"{GITHUB_API_BASE}/repos/{self.owner}/{self.name}/contents/{path}"
+        headers = {
+            "Authorization": f"Bearer {self.cfg.token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        # 1. GET 拿 sha (覆盖必须)
+        sha = None
+        try:
+            existing = self._reader.fetch_file(path)
+            sha = existing["sha"]
+        except Exception:
+            sha = None  # 新文件
+
+        payload = {
+            "message": commit_message,
+            "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+            "branch": self.cfg.branch,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        # 2. PUT (重试)
+        last_err = None
+        for attempt in range(DEFAULT_MAX_RETRIES):
+            try:
+                resp = requests.put(
+                    url, json=payload, headers=headers,
+                    timeout=DEFAULT_TIMEOUT_S,
+                )
+                if 400 <= resp.status_code < 500:
+                    raise GithubBackupError(
+                        f"PUT {path} 4xx {resp.status_code}: {resp.text[:200]}"
+                    )
+                resp.raise_for_status()
+                logger.info(f"PUT {path} OK ({resp.status_code})")
+                return
+            except requests.RequestException as e:
+                last_err = e
+                if attempt < DEFAULT_MAX_RETRIES - 1:
+                    wait = _RETRY_BACKOFF_S[attempt]
+                    logger.warning(
+                        f"PUT {path} 失败 {attempt+1}/{DEFAULT_MAX_RETRIES}, "
+                        f"{wait}s 后重试: {e}"
+                    )
+                    time.sleep(wait)
+        raise GithubBackupError(
+            f"PUT {path} 重试 {DEFAULT_MAX_RETRIES} 次耗尽: {last_err}"
+        )
+```
+
+---
+
+### 3.10 🆕 `src/wechat_notifier.py` — 每日成功/失败微信推送 (P14)
+
+```python
+"""微信通知 — 复用 obsidian-novel-publisher 完全相同模式
+
+设计原则 (对标 publisher/src/wechat_notifier.py):
+- 极简: 3-4 行 ≤40 字/行, 老板一眼能审
+- 隔离: try/except 全包, 微信失败不影响 daily 主流程
+- 幂等: pending.txt + openclaw cron run + 20s 后删
+- 可关: WEIXIN_NOTIFY_ENABLED=false 完全跳过
+
+推送路径:
+  daily.py → wechat-pending.txt → openclaw cron run <jobId>
+    → OpenClaw gateway → isolated agentTurn → announce delivery fallback
+    → openclaw-weixin plugin → 老板微信 (老板私聊)
+"""
+from __future__ import annotations
+import logging
+import os
+import subprocess
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class WechatNotifierConfig:
+    enabled: bool
+    cron_job_id: str  # OpenClaw cron job id (yk-script 专属, 待 P14 创建)
+    pending_file: Path
+    cron_run_timeout_s: float
+
+    @classmethod
+    def from_env(cls) -> WechatNotifierConfig:
+        return cls(
+            enabled=os.environ.get("WEIXIN_NOTIFY_ENABLED", "true").lower()
+            in ("true", "1", "yes"),
+            cron_job_id=os.environ.get(
+                "YK_WEIXIN_CRON_JOB_ID", ""  # 空 = 未配置, 跳过推送
+            ),
+            pending_file=Path(
+                os.environ.get(
+                    "YK_WEIXIN_PENDING_FILE",
+                    str(Path(__file__).parent.parent / "logs" / "yk-wechat-pending.txt"),
+                )
+            ),
+            cron_run_timeout_s=float(os.environ.get("WEIXIN_CRON_RUN_TIMEOUT_S", "15")),
+        )
+
+
+def _format_success(
+    *, season_no: int, episode_no: int, title: str, score: int,
+    hook_type: str, post_url: str,
+) -> str:
+    line1 = f"✅ 剧本生成成功 · S{season_no:02d}-EP{episode_no:02d}"
+    line2 = title
+    line3 = f"评分 {score}/50 · 钩子 {hook_type}"
+    line4 = post_url if post_url else "(dry-run, 未推送)"
+    return "\n".join([line1, line2, line3, line4])
+
+
+def _format_failure(
+    *, season_no: int, episode_no: int, title: str, error_short: str,
+) -> str:
+    line1 = f"❌ 剧本生成失败 · S{season_no:02d}-EP{episode_no:02d}"
+    line2 = title or "(无标题)"
+    line3 = f"原因: {error_short[:60]}"
+    line4 = "查看: tail logs/yk-script.log"
+    return "\n".join([line1, line2, line3, line4])
+
+
+def notify_success(cfg: WechatNotifierConfig, **kwargs) -> bool:
+    if not cfg.enabled or not cfg.cron_job_id:
+        logger.debug("[notify] wechat disabled or job_id empty, skip")
+        return False
+    msg = _format_success(**kwargs)
+    return _send(cfg, msg)
+
+
+def notify_failure(cfg: WechatNotifierConfig, **kwargs) -> bool:
+    if not cfg.enabled or not cfg.cron_job_id:
+        logger.debug("[notify] wechat disabled or job_id empty, skip")
+        return False
+    msg = _format_failure(**kwargs)
+    return _send(cfg, msg)
+
+
+def _send(cfg: WechatNotifierConfig, msg: str) -> bool:
+    """与 publisher 完全一致: 写文件 + cron run + sleep 20s + unlink"""
+    try:
+        cfg.pending_file.parent.mkdir(parents=True, exist_ok=True)
+        cfg.pending_file.write_text(msg, encoding="utf-8")
+        logger.info(f"[notify] pending.txt 已写: {cfg.pending_file}")
+
+        try:
+            subprocess.run(
+                ["openclaw", "cron", "run", cfg.cron_job_id],
+                capture_output=True, text=True,
+                timeout=cfg.cron_run_timeout_s, check=False,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning(f"[notify] cron run CLI 超时 {cfg.cron_run_timeout_s}s")
+
+        time.sleep(20)  # 让 agent 读完文件 + 处理 + runner fallback 推送
+
+        try:
+            cfg.pending_file.unlink(missing_ok=True)
+            logger.info("[notify] pending.txt 已删")
+        except Exception as e:
+            logger.warning(f"[notify] 删 pending.txt 失败 (无害): {e}")
+
+        return True
+
+    except Exception as e:
+        logger.warning(f"[notify] 推送失败 (无害): {type(e).__name__}: {e}")
+        return False
+```
+
+---
+
 ## 4. 测试矩阵 (P10 落地用)
 
 | 测试文件 | 验证内容 | mock 策略 | 期望时长 |
@@ -1194,6 +1879,13 @@ if __name__ == "__main__":
 | `test_daily_e2e.py` | **全链路 dry-run**: state 推进 + memory 提取 + Markdown 写到 output/ | mock LLM + tmpdir | 10s |
 | `test_knowledge_loading.py` | 按 stage 加载 5 份 references + 关键词过滤 | 静态 | 1s |
 | `test_state_persistence.py` | 跑 3 次 daily.py (EP01-03), state 应推进 0→3, memory 累积 | mock LLM + tmpdir | 15s |
+| 🆕 `test_backup_reader.py` | GitHub API GET + base64 解码 + 4xx/5xx 重试 | `requests-mock` 模拟 200/404/500 | 3s |
+| 🆕 `test_outline_fetcher.py` | sha 变更检测 + cache fallback + 本地 fallback | tmpdir + mock reader | 5s |
+| 🆕 `test_github_backup.py` | PUT 文件 + sha 必传 + index.json 追加 + CHANGELOG 追加 | `requests-mock` 模拟 PUT | 5s |
+| 🆕 `test_wechat_notifier.py` | pending.txt 写 + cron run + sleep + unlink + disabled 跳过 | mock subprocess + tmpdir | 3s |
+| 🆕 `test_outline_change_flow.py` | 老板改 GitHub → sha 变 → cache 刷新 → daily 用新大纲 | 模拟 reader 返新 sha | 5s |
+| 🆕 `test_backup_flow.py` | 生成 → backup → index.json 追加 → CHANGELOG 追加 | 全链路 mock | 8s |
+| 🆕 `test_wechat_notify_flow.py` | 成功/失败 → pending.txt 内容正确 → cron run 调 | mock subprocess.run | 3s |
 
 **总测试数目标**: ≥45 个, 全部 PASS, 覆盖 ≥85% 行
 
@@ -1217,13 +1909,16 @@ if __name__ == "__main__":
 | **5** | src/types.py + src/llm_client.py + src/screen_writer.py | `feat(writer)` | `pytest tests/unit/test_screen_writer.py test_llm_client.py` ≥10 PASS | 0.6d |
 | **6** | src/critic.py | `feat(critic)` | `pytest tests/unit/test_critic.py` ≥8 PASS | 0.7d |
 | **7** | src/memory_manager.py | `feat(memory)` | `pytest tests/unit/test_memory_manager.py` ≥12 PASS (含 6 条硬约束) | 0.5d |
-| **8** | src/state.py + src/markdown_renderer.py + src/hmac_client.py + src/logger.py + src/daily.py | `feat(orchestrator)` | `pytest tests/unit/test_state.py test_markdown_renderer.py test_hmac_client.py` ≥15 PASS | 0.8d |
+| **8** | src/state.py + src/markdown_renderer.py + src/hmac_client.py + src/logger.py + src/daily.py (不含 outline_fetcher/github_backup/wechat) | `feat(orchestrator)` | `pytest tests/unit/test_state.py test_markdown_renderer.py test_hmac_client.py` ≥15 PASS | 0.8d |
 | **9** | systemd/yk-script.service + yk-script.timer + logrotate | `feat(systemd)` | `systemd-analyze verify` OK | 0.3d |
 | **10** | 集成测试 (3 个 integration/) | `feat(integration)` | `pytest tests/integration/` ≥12 PASS | 0.5d |
 | **11** | scripts/ (publish-today/skip-next/dry-run/regenerate/seed-state) | `feat(scripts)` | 每个脚本 --help 正常 | 0.2d |
-| **12** | docs/RUNBOOK.md + CHANGELOG.md + dry-run 验证 EP01 | `docs+verify` | EP01 Markdown 渲染正确 + output/EP01.md 可读 | 0.2d |
+| **🆕 12** | src/backup_reader.py + src/outline_fetcher.py + pull-outline.py | `feat(outline-fetcher)` | `pytest test_backup_reader.py test_outline_fetcher.py` ≥8 PASS + `test_outline_change_flow.py` PASS | 0.5d |
+| **🆕 13** | src/github_backup.py + verify-backup.py | `feat(github-backup)` | `pytest test_github_backup.py test_backup_flow.py` ≥8 PASS | 0.4d |
+| **🆕 14** | src/wechat_notifier.py + 微信 cron job 创建 + 更新 daily.py 集成 | `feat(wechat-notify)` | `pytest test_wechat_notifier.py test_wechat_notify_flow.py` ≥5 PASS | 0.3d |
+| **15** | docs/RUNBOOK.md + CHANGELOG.md + dry-run 验证 EP01 | `docs+verify` | EP01 Markdown 渲染正确 + output/EP01.md 可读 | 0.2d |
 
-**总工时**: **5.2d** (vs PLAN.md 估的 5.4d, 优化 -0.2d)
+**总工时**: **5.6d** (vs 5.2d, 加 P12-P14 3 步增加 0.4d — 但质量提升巨大)
 **门控规则**: 上一步测试不过不许 git commit 下一步 (pre-commit hook)
 
 ---
@@ -1244,6 +1939,16 @@ if __name__ == "__main__":
 | **R10** | **HMAC 签名错** | OBSIDIAN_PUBLISH_SECRET 不一致 / 时钟漂移 | hmac_client 加 5xx 重试 + 老板在 obsidian-journal 控制台校验 secret 一致 | 🟢 |
 | **R11** | **Obsidian 接口 schema 变了** | 上游 obsidian-journal 升级 | hmac_client 抛 422 → daily.main 兜底 alert, 暂存 output/ 待人工推送 | 🟢 |
 | **R12** | **Q1-Q3 之后又变** (角色形象再改) | 老板突然改主意 | 角色卡独立, 改 protagonist.json + youkei.json + 重跑 EP01 即可, state 不影响 | 🟢 |
+| **🆕 R13** | **GitHub API 401/403** | GITHUB_BACKUP_TOKEN 过期 / scope 不够 | `_put_file` 4xx 不重试 → 记 log + 微信告警 (主推送已成功, 仅备份失败) | 🟡 |
+| **🆕 R14** | **GitHub API 5xx 限流** | 5000 req/h 超限 (理论不会, 1 集 4 PUT) | 重试 3 次 指数退避 (1s/2s/4s), 仍失败 → log warning + 微信告警 | 🟡 |
+| **🆕 R15** | **Outline sha 误检测** | GitHub 返回 sha 但与 cache 同, 多写一次 | `_write_cache` atomic, 内容相同也安全; 检测靠严格 `!=` 比较 | 🟢 |
+| **🆕 R16** | **Outline 拉取失败但 cache 有旧版** | GitHub 临时挂 / 老板改 draft 中 | fallback cache → fallback 本地 → 启动失败 (3 级 fallback) | 🟢 |
+| **🆕 R17** | **Outline 老板改坏了** (JSON 解析失败) | 老板编辑时漏写逗号 / 引号 | OutlineFetcher 抛 RuntimeError → daily.main 启动失败 → 推微信告警 (老板看日志修) | 🟡 |
+| **🆕 R18** | **WeChat cron job 未创建** | P14 部署但 cron job 还没建 | `notify_*` 检查 `cron_job_id` 空字符串 → 静默跳过 + log warning | 🟢 |
+| **🆕 R19** | **WeChat 推送 race** (publisher 已用同 cron job) | yk-script 和 publisher 撞同一个 cron job | **必须新创建独立 cron job** `notify-yk-script-wechat`, jobId 不同 (老板在 OpenClaw 控制台创建) | 🟡 |
+| **🆕 R20** | **WeChat 推送后 pending.txt 被 schedule 兜底** | 20s sleep 不够 / agent 还没读 | publisher 已验证 sleep 20s 足够, 沿用 | 🟢 |
+| **🆕 R21** | **Backup 失败阻塞主推送** | 网络挂了 GitHub API 都不可达 | github_backup 失败 → log warning + 微信告警 (标 "主推送已成功"), **不 throw** | 🟢 |
+| **🆕 R22** | **老板改 outline 但 season-01.sha 不更新** (web UI 编辑后没 commit) | 老板手编后未点保存 | GitHub Contents API 读的是 main 分支最新 commit, 老板不 commit = 看不到, **流程上老板必须 commit** (RUNBOOK 写明) | 🟡 |
 
 ---
 
@@ -1261,6 +1966,10 @@ if __name__ == "__main__":
 | **D8** | 测试框架 | **pytest + pytest-mock + requests-mock** | 与 publisher 一致 |
 | **D9** | 部署 | **systemd timer 06:00** | 与 publisher 一致, 本机直跑 |
 | **D10** | 推送 | **HMAC POST → obsidian-journal /api/external/posts** | 复用现有 API |
+| **🆕 D11** | 大纲数据源 | **`obsidian-yk-script` 仓 `data/seasons/*.json` (GitHub 拉)** | 老板可在 GitHub web UI 直接编辑, OutlineFetcher 每次跑前拉 + sha 检测 |
+| **🆕 D12** | 备份仓 | **复用 `obsidian-novel-backups` 私仓 `yk-script/` 子路径** | 不新建仓库, 同 PAT, 路径隔离; 写入: md + json + index.json + CHANGELOG |
+| **🆕 D13** | 微信推送 | **复用 publisher 同模式, 新建独立 cron job `notify-yk-script-wechat`** | 与 publisher jobId 区分, 防 race; 推送内容为 4 行 (S/E/P + 评分+钩子 + URL) |
+| **🆕 D14** | 失败不阻塞 | **主推送成功 + 备份失败 → 推微信告警但标 "备份失败"** | 保证博客上线不被备份报错阻塞 |
 
 ---
 
@@ -1268,31 +1977,63 @@ if __name__ == "__main__":
 
 ```bash
 # 0. 老板拍 P1-P4 (见 PLAN.md § 老板决策清单)
-# 1. 我创建分支
+# 1. 老板准备 (一次性, 30min)
+#    a) 确认 GITHUB_BACKUP_TOKEN 有 obsidian-yk-script (read) + obsidian-novel-backups (read+write) 权限
+#       复用 publisher 的 PAT, 仅需补充 obsidian-yk-script read scope
+#    b) 在 OpenClaw 控制台创建 cron job `notify-yk-script-wechat`:
+#       - sessionTarget: isolated
+#       - payload.kind: agentTurn
+#       - payload.message: 读取 $YK_WEIXIN_PENDING_FILE 转推微信
+#       - delivery.mode: announce → channel=openclaw-weixin → to=老板 o9cq805h...
+#       - schedule: 手动触发 (publisher 同模式)
+#    c) .env 填: GITHUB_BACKUP_TOKEN + MINIMAXI_API_KEY + OBSIDIAN_PUBLISH_SECRET + YK_WEIXIN_CRON_JOB_ID
+#    d) 老板可在 https://github.com/blackclaw0318/obsidian-yk-script/edit/main/data/seasons/season-01.json 直接编辑大纲
+
+# 2. 我创建分支
 cd projects/obsidian-yk-script
 git checkout -b feat/v0.2-implementation
 
-# 2. 按 §5 表的 12 步顺序执行
-# 3. 每步 commit + push 前跑 pytest, 全部通过才 push
-# 4. 全部完成后 dry-run 跑 EP01, 验 output/EP01.md 渲染
+# 3. 按 §5 表的 15 步顺序执行 (P0-P14)
+# 4. 每步 commit + push 前跑 pytest, 全部通过才 push
+# 5. 全部完成后 dry-run 跑 EP01:
+python scripts/dry-run.py --force-episode 0
+ls output/*.md  # 验 EP01 渲染
 
-# 5. 部署
+# 6. 验证 outline 拉取 + backup
+python scripts/pull-outline.py  # 验 GitHub sha 检测 OK
+python scripts/verify-backup.py  # 验 GitHub PUT OK
+
+# 7. 部署
 sudo cp systemd/yk-script.{service,timer} /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now yk-script.timer
 
-# 6. 手动跑一次验证
+# 8. 手动跑一次验证 (老板应该收到微信推送)
 sudo systemctl start yk-script.service
 journalctl -u yk-script.service -f
 
-# 7. 验证推送
-curl https://www.shangkun.uk/posts?tag=YouKei
+# 9. 验证推送 + 备份
+curl https://www.shangkun.uk/posts?tag=YouKei   # 验博客
+curl -H "Authorization: Bearer $GITHUB_BACKUP_TOKEN" \
+  https://api.github.com/repos/blackclaw0318/obsidian-novel-backups/contents/yk-script/truth/scripts/s01  # 验备份仓
+
+# 10. 验证微信
+# 老板微信应收到:
+#   ✅ 剧本生成成功 · S01-EP01 搬家日
+#   评分 42/50 · 钩子 悬念钩
+#   https://www.shangkun.uk/posts/yk-s01-ep01
 ```
 
-**老板决策清单 (P1-P4, 见 PLAN.md § 老板决策清单) 拍板后, 我立即按此表开 P0 → 5.2d 上线 → 明天 06:00 自动产出第一集草稿。**
+**老板决策清单 (P1-P4, 见 PLAN.md § 老板决策清单) 拍板后, 我立即按此表开 P0 → 5.6d 上线 → 明天 06:00 自动产出第一集草稿 + 老板微信收到推送。**
 
 ---
 
-*文档版本*: v0.2 (2026-07-11 14:55 GMT+8)
+*文档版本*: v0.3 (2026-07-11 21:43 GMT+8)
 *作者*: 黑 (Hei)
-*变更摘要*: 从 PLAN.md (战略/数据/季弧) 拆出"怎么写"到 IMPLEMENTATION.md — prompt 模板实例 + Agent 代码骨架 + 测试矩阵 + 12 步 gated commits + 12 项工程风险 + 10 项关键决策
+*变更摘要*: v0.3 增量 (老板 21:43 三项新需求):
+- 🆕 §3.7 backup_reader + §3.8 outline_fetcher — GitHub 拉取最新大纲 + sha 缓存
+- 🆕 §3.9 github_backup — 每日生成内容备份到 obsidian-novel-backups/yk-script/
+- 🆕 §3.10 wechat_notifier — 复用 publisher 同模式 + 新独立 cron job
+- 📈 步骤 12→15 步, 工时 5.2d→5.6d, 测试 ≥75→≥93
+- 📈 D11-D14 决策 + R13-R22 风险 (10 项新风险)
+- 📈 scripts/ 加 pull-outline.py + verify-backup.py

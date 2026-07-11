@@ -1,13 +1,14 @@
-# obsidian-yk-script — 方案稿 v0.2 (2026-07-11)
+# obsidian-yk-script — 方案稿 v0.3 (2026-07-11 21:43)
 
 > **项目代号**: obsidian-yk-script
 > **目标**: 每天 06:00 自动生成"老板 + 缅因猫 YouKei"单元剧短视频脚本 (30s-1:30), POST 到 obsidian-journal 生活分类
-> **状态**: ⏸️ 等老板 P1-P4 拍板开 P0
-> **基于**: v0.1 + 2026-07-11 调研结论 (short-drama + ShakeDrama + COMIC)
+> **状态**: ⏸️ 等老板 P1-P8 拍板开 P0
+> **基于**: v0.1 + 2026-07-11 调研 (short-drama + ShakeDrama + COMIC) + **v0.3 老板三增项** (GitHub 备份 + GitHub 拉大纲 + 微信推送)
+> **版本**: v0.2 → **v0.3** (增量在老板 21:43 拍)
 >
 > **配套文档**:
 > - 📋 [PLAN.md](PLAN.md) — **本文档**: why/what/季弧/角色/决策
-> - 🛠 [IMPLEMENTATION.md](IMPLEMENTATION.md) — **how**: prompt 模板实例 + Agent 代码骨架 + 测试矩阵 + 12 步 gated commits + 工程风险
+> - 🛠 [IMPLEMENTATION.md](IMPLEMENTATION.md) — **how**: prompt 模板 + Agent 代码 + 测试矩阵 + **15 步 gated commits** + 22 项风险 + 14 项决策
 
 ---
 
@@ -88,6 +89,38 @@
 │  obsidian-journal posts 表                                           │
 │   category='life', tags='YouKei,季1-EP05,生活vlog'                  │
 │   公开页 /posts?tag=YouKei 列表自动展示                              │
+└────────────────────────┬────────────────────────────────────────────┘
+                         │
+            ┌────────────┼────────────┐
+            ▼            ▼            ▼
+┌────────────────────┐ ┌──────────────────────┐ ┌────────────────────┐
+│ 🆕 v0.3 GitHub备份  │ │ 🆕 v0.3 微信推送      │ │ state + memory 更新 │
+│ obsidian-novel-     │ │ pending.txt +         │ │ (原子写)            │
+│ backups/yk-script/  │ │ cron run → 微信       │ │                    │
+│ truth/scripts/      │ │                       │ │                    │
+│ s01/ep05.md         │ │ 4 行:                  │ │                    │
+│ s01/ep05.json       │ │ ✅ 标题                │ │                    │
+│ s01/index.json      │ │ 评分+钩子              │ │                    │
+│ CHANGELOG.md        │ │ URL                   │ │                    │
+└────────────────────┘ └──────────────────────┘ └────────────────────┘
+
+📥 输入源: 大纲从 GitHub 拉 (boss 可在 web UI 编辑)
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  GitHub Contents API (startup 拉取)                                 │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ blackclaw0318/obsidian-yk-script 仓 (public)                │   │
+│  │   ├─ data/seasons/season-01.json   ← 老板手编主入口          │   │
+│  │   ├─ data/characters/youkei.json   ← 角色卡(可选改)         │   │
+│  │   ├─ data/characters/protagonist.json                        │   │
+│  │   └─ data/characters/apartment.json                          │   │
+│  │                                                              │   │
+│  │  拉取流程: GET /contents/...  → 拿 (content, sha)             │   │
+│  │         → 比对 data/cache/season-01.sha 旧 sha               │   │
+│  │         → 变了 → log "老板改了新大纲" + 原子写 cache           │   │
+│  │         → 没变 → 用 cache 加速                                │   │
+│  │         → 拉取失败 → 3 级 fallback (cache → 本地 → 启动失败) │   │
+│  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -171,6 +204,11 @@ obsidian-yk-script/
 │   ├── state/                   # 运行时状态 (gitignored)
 │   │   ├── state.json           # 进度 (season/episode/last_run)
 │   │   └── memory.json          # 角色状态机 + 道具状态 + 时间线
+│   ├── cache/                   # 🆕 v0.3 GitHub 拉取缓存 (gitignored)
+│   │   ├── season-01.json       # ← 从 GitHub 拉的大纲
+│   │   ├── season-01.sha        # ← sha 检测变更
+│   │   ├── youkei.json          # ← 从 GitHub 拉的角色卡
+│   │   └── protagonist.json     # ← 从 GitHub 拉的主角卡
 ├── prompts/                     # 🆕 v0.2 新增 (注入 LLM 的 prompt 模板)
 │   ├── writer.yaml              # Screenwriter prompt 模板
 │   ├── critic_rubric.yaml       # Critic 5 维评分标准
@@ -178,18 +216,24 @@ obsidian-yk-script/
 │   ├── satisfaction_matrix.json # 爽点 5 类配比 (萌宠适配)
 │   └── memory_constraints.yaml  # Memory Manager 硬约束规则
 ├── src/
-│   ├── daily.py                 # 主入口 (cron 调用)
+│   ├── daily.py                 # 主入口 (集成 outline_fetcher + github_backup + wechat)
 │   ├── screen_writer.py         # 🆕 Agent 1: 写
 │   ├── critic.py                # 🆕 Agent 2: 审
 │   ├── memory_manager.py        # 🆕 Agent 3: 管
 │   ├── markdown_renderer.py     # JSON → MD
 │   ├── hmac_client.py           # 复用 obsidian-journal
-│   └── state.py                 # 状态机
+│   ├── state.py                 # 状态机
+│   ├── backup_reader.py         # 🆕 v0.3 GitHub Contents API 只读 (拉 outline/characters)
+│   ├── outline_fetcher.py       # 🆕 v0.3 sha 检测 + 缓存 + fallback 本地
+│   ├── github_backup.py         # 🆕 v0.3 每日生成内容备份到 obsidian-novel-backups/yk-script/
+│   └── wechat_notifier.py       # 🆕 v0.3 复用 publisher 模式: pending.txt + cron run + 20s
 ├── scripts/
 │   ├── publish-today.py         # 手动触发 (复用 daily.py)
 │   ├── skip-next.py             # 老板说"今天跳过"
 │   ├── dry-run.py               # 不推送, 仅生成 + 本地预览
-│   └── regenerate.py            # 重写指定集 (状态不变)
+│   ├── regenerate.py            # 重写指定集 (状态不变)
+│   ├── pull-outline.py          # 🆕 v0.3 手动强制拉 outline (调试用)
+│   └── verify-backup.py         # 🆕 v0.3 验证今日 backup 已上传
 ├── systemd/
 │   ├── yk-script.service
 │   └── yk-script.timer          # 06:00 daily
@@ -504,6 +548,10 @@ python-dotenv>=1.0
 | **P2** | fork 时是否保留 short-drama 原文 + LICENSE? | 保留 / 仅摘要 / 删除 | ✅ **保留原文 + LICENSE** (MIT 要求, 也方便审) |
 | **P3** | Agent 1 候选数 N? | N=2 / N=3 / N=5 | ✅ **N=3** (2 太单一, 4+ 边际收益低, token 多) |
 | **P4** | Critic 评分阈值? | ≥35/50 / ≥38/50 / ≥40/50 | ✅ **≥38/50** (优良线, 38-44 微调后可用) |
+| **🆕 P5** | 大纲从 GitHub 拉取? | 是 / 否 / 私仓 | ✅ **是 (本仓 public)** — 老板可在 web UI 编辑 |
+| **🆕 P6** | 备份仓库? | 新建 / 复用 obsidian-novel-backups / 不备份 | ✅ **复用 obsidian-novel-backups/yk-script/** (不新建) |
+| **🆕 P7** | 微信推送? | 是 (新 cron job) / 否 | ✅ **是 (新独立 cron job `notify-yk-script-wechat`)** |
+| **🆕 P8** | 备份失败是否阻塞主推送? | 阻塞 / 不阻塞 | ✅ **不阻塞** (微信告警标 "备份失败") |
 
 ---
 
@@ -523,9 +571,12 @@ python-dotenv>=1.0
 | **P9** | systemd timer 06:00 + logrotate + 告警 | 3 | **P8** | 0.3d |
 | **P10** | 测试: 单测 (5 文件) + 集成 (e2e dry-run + knowledge loading) | 7 | **P8** | 0.5d |
 | **P11** | docs/ (RUNBOOK + CHANGELOG) | 2 | **P9** | 0.2d |
+| **🆕 P12** | src/backup_reader.py + src/outline_fetcher.py + pull-outline.py (GitHub 拉大纲) | 3 | **P11** | 0.5d |
+| **🆕 P13** | src/github_backup.py + verify-backup.py (备份生成内容) | 2 | **P12** | 0.4d |
+| **🆕 P14** | src/wechat_notifier.py + 新 cron job 创建 + daily.py 集成推送 | 3 | **P13** | 0.3d |
 
-**总代码量**: ~1100 LOC (vs v0.1 700 LOC, 多 400 LOC 来自 3 Agent + 知识库注入 + 状态机)
-**总工时**: 5.4d
+**总代码量**: ~1400 LOC (vs v0.2 1100 LOC, 多 300 LOC 来自 GitHub/备份/微信模块)
+**总工时**: **5.6d** (vs v0.2 5.4d, 加 0.2d)
 
 ---
 
@@ -585,6 +636,91 @@ python-dotenv>=1.0
 | ShakeDrama | https://github.com/XiangTodayEatsWhat/ShakeDrama | Apache 2.0 | ⚠️ 借鉴 multi-agent 拆分思想 |
 | COMIC 论文 | https://arxiv.org/abs/2603.11048v1 | 学术 | ⚠️ 借鉴 Island-based 写作循环 |
 | COMIC 项目页 | https://susunghong.github.io/COMIC/ | — | 参考 |
+---
+
+## 🆕 v0.2 → v0.3 核心变更 (基于 2026-07-11 21:43 老板三增项)
+
+| 维度 | v0.2 (旧) | **v0.3 (新)** | 来源 |
+|---|---|---|---|
+| 备份机制 | ❌ 无 | ✅ **每日生成内容备份到 `obsidian-novel-backups/yk-script/`** (md + json + index + CHANGELOG) | 对标 publisher/src/github_backup.py |
+| 大纲数据源 | ⚠️ 本地 `data/seasons/season-01.json` (老板需手动 PR) | ✅ **GitHub Contents API 拉 `obsidian-yk-script` 仓** (老板可在 web UI 编辑) | 对标 publisher/src/backup_reader.py + novel_outline.py |
+| 微信推送 | ❌ 无 | ✅ **复用 publisher 模式: pending.txt + 新 cron job `notify-yk-script-wechat` + 20s sleep** | 对标 publisher/src/wechat_notifier.py + cron job 5225d68b |
+| 失败隔离 | ❌ 无 | ✅ **备份失败 → log warning + 微信告警 (不阻塞主推送)** | publisher v0.40 实战教训 |
+| Outline 缓存 | ❌ 无 | ✅ **sha 检测 + 3 级 fallback (GitHub → cache → 本地)** | publisher/novel_outline.py |
+| 决策项 | P1-P4 | **P1-P8** (新增 P5-P8 拍板: 大纲/备份/微信/失败隔离) | 老板 21:43 拍 |
+
+### v0.3 老板决策清单 (增量)
+
+| # | 项 | 候选 | **黑推荐** |
+|---|---|---|---|
+| **P5** | 大纲数据源 (GitHub 拉)? | 本仓 public / 私仓 `obsidian-yk-config` / 本地 | ✅ **本仓 public** (老板 web UI 编辑最直接, 角色化名"上坤"+ 标题都是非敏感) |
+| **P6** | 备份仓库? | 新建 `obsidian-yk-backups` / 复用 `obsidian-novel-backups/yk-script/` / 不备份 | ✅ **复用** (同 PAT, 路径隔离) |
+| **P7** | 微信推送? | 是 (新 cron job) / 否 | ✅ **是 (新独立 cron job `notify-yk-script-wechat`, 防与 publisher race)** |
+| **P8** | 备份失败是否阻塞主推送? | 阻塞 / 不阻塞 | ✅ **不阻塞** (微信告警标 "备份失败", 保证博客上线) |
+
+### v0.3 工程量
+
+- 新增 4 个 src/ 模块: `backup_reader.py` (~180 LOC) + `outline_fetcher.py` (~140 LOC) + `github_backup.py` (~220 LOC) + `wechat_notifier.py` (~130 LOC) ≈ **670 LOC**
+- 新增 2 个 scripts/: `pull-outline.py` + `verify-backup.py` ≈ **80 LOC**
+- 新增 7 个测试文件 (unit 4 + integration 3) ≈ **30 测试**
+- 新增 4 项决策 (P5-P8) + 10 项风险 (R13-R22)
+- 总工时: **5.2d → 5.6d** (+0.4d)
+
+### v0.3 GitHub 备份策略详解
+
+**复用 publisher 现有模式**, 写入路径:
+
+```
+obsidian-novel-backups 私仓 (已有, 不新建)
+└── yk-script/                          ← 新增子路径, 与 publisher 隔离
+    ├── CHANGELOG.md                    ← 每日追加 1 行
+    └── truth/
+        └── scripts/
+            └── s01/
+                ├── ep01.md             ← 渲染 Markdown
+                ├── ep01.json           ← EpisodeScript JSON + critic_score
+                ├── ep02.md
+                ├── ep02.json
+                └── index.json          ← 季索引 (追加, 不覆盖)
+```
+
+**老板编辑大纲流程** (超简单):
+
+1. 打开 https://github.com/blackclaw0318/obsidian-yk-script/edit/main/data/seasons/season-01.json
+2. 直接在 GitHub web UI 编辑 (改标题/钩子/爽点/冲突)
+3. 点 "Commit changes"
+4. 明天 06:00 cron 自动用最新大纲, 推送老板微信: "📥 outline changed: season-01 sha=xxx→yyy"
+
+### v0.3 微信推送策略详解
+
+**新建独立 cron job `notify-yk-script-wechat`** (避免与 publisher 的 `5225d68b` 撞):
+
+```
+publisher  → notify-publisher-wechat (5225d68b-...)
+yk-script  → notify-yk-script-wechat (新 job id, 待 P14 创建)
+```
+
+**成功消息 (4 行)**:
+```
+✅ 剧本生成成功 · S01-EP05 洗澡大作战
+3 候选 / 最高分 42/50
+钩子 悬念钩
+https://www.shangkun.uk/posts/yk-s01-ep05
+```
+
+**失败消息 (4 行)**:
+```
+❌ 剧本生成失败 · S01-EP05 洗澡大作战
+原因: 3 候选全失败 (LLM 超时)
+建议: tail logs/yk-script.log
+```
+
+**备份失败独立告警** (主推送已成功时):
+```
+⚠️ 备份失败 · S01-EP05 洗澡大作战
+主推送已成功 · GitHub backup 失败
+查看: tail logs/yk-script.log
+```
 
 ---
 

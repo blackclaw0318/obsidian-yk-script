@@ -1,0 +1,328 @@
+{
+  "season_no": 1,
+  "title": "上坤 × YouKei 入住 60 平新家 30 天",
+  "subtitle": "Adaptation, Companionship, Cuteness, Friction, Warmth",
+  "theme": "适应、共处、萌点、生活小摩擦、温馨收尾",
+  "total_episodes": 12,
+  "stage_distribution": {
+    "起势段": {
+      "ep_range": "EP01-EP02",
+      "ep_count": 2,
+      "percentage": 17,
+      "rhythm_intensity": "★★",
+      "description": "建立核心角色 + 萌点铺设 + 钩子悬念"
+    },
+    "攀升段": {
+      "ep_range": "EP03-EP06",
+      "ep_count": 4,
+      "percentage": 33,
+      "rhythm_intensity": "★★★",
+      "description": "冲突升级 + 萌点累积 + 钩子强化"
+    },
+    "风暴段": {
+      "ep_range": "EP07-EP10",
+      "ep_count": 4,
+      "percentage": 33,
+      "rhythm_intensity": "★★★★",
+      "description": "高潮密集 + 钩子最强 + 反转多"
+    },
+    "决战段": {
+      "ep_range": "EP11-EP12",
+      "ep_count": 2,
+      "percentage": 17,
+      "rhythm_intensity": "★★★★★",
+      "description": "终极危机 + 收束 + 季末温馨"
+    }
+  },
+  "satisfaction_matrix_config": {
+    "情感爆发": 0.60,
+    "悬念揭秘": 0.20,
+    "打脸复仇": 0.10,
+    "逆袭翻盘": 0.05,
+    "身份碾压": 0.05
+  },
+  "hook_type_distribution_config": {
+    "情绪钩": 0.30,
+    "悬念钩": 0.25,
+    "反转钩": 0.20,
+    "信息钩": 0.15,
+    "危机钩": 0.10
+  },
+  "episodes": [
+    {
+      "ep": 1,
+      "title": "📦 搬家日",
+      "stage": "起势段",
+      "stage_position_pct": 8,
+      "scene": "客厅纸箱堆",
+      "core_conflict": "YouKei 钻进最大箱子不出来",
+      "logline": "搬家日, 60 平里全是纸箱, YouKei 选中最大那个, 一头钻进去再也不出来",
+      "hook_type": "悬念钩",
+      "hook_subtype": "来者悬念",
+      "hook_text_template": "客厅尽头那个最大的纸箱, 突然动了一下",
+      "satisfaction_types": ["情感爆发"],
+      "satisfaction_intensity": "★★★",
+      "key_moments": [
+        "0:05 - 主人搬第 3 个箱子, YouKei 已经钻进第 1 个",
+        "0:30 - 主人发现猫不见了, 开始翻箱子",
+        "0:50 - 找到最大箱子, 里面探出半张脸"
+      ],
+      "rhythm_notes": "前 5s 必现冲突 (搬箱子时猫钻空)",
+      "next_episode_seed": "EP02 第一夜, YouKei 不敢上床"
+    },
+    {
+      "ep": 2,
+      "title": "🛏️ 第一夜",
+      "stage": "起势段",
+      "stage_position_pct": 17,
+      "scene": "主卧",
+      "core_conflict": "半夜 3 点 YouKei 第一次跳上床踩肚子",
+      "logline": "深夜, 主人以为 YouKei 不会上床; 凌晨 3 点, 一只爪子准时踩在肚子上",
+      "hook_type": "情绪钩",
+      "hook_subtype": "甜蜜中断",
+      "hook_text_template": "我闭上眼, 背后传来轻轻的呼噜——突然, 一只爪子踩在我肚子上",
+      "satisfaction_types": ["情感爆发"],
+      "satisfaction_intensity": "★★★★",
+      "key_moments": [
+        "0:05 - 主人准备睡觉, YouKei 在床头柜发呆",
+        "0:20 - 关灯, YouKei 消失",
+        "0:45 - 主人以为是养猫的胜利",
+        "1:00 - 凌晨 3 点, 一只爪子踩上肚子"
+      ],
+      "rhythm_notes": "用 '安静→突然' 制造反差, 萌点密度极高",
+      "next_episode_seed": "EP03 阳台征服, 第一次看鸟"
+    },
+    {
+      "ep": 3,
+      "title": "🐦 阳台征服",
+      "stage": "攀升段",
+      "stage_position_pct": 25,
+      "scene": "阳台",
+      "core_conflict": "YouKei 第一次看窗外飞过的鸟, 激动撞到玻璃",
+      "logline": "第一次带 YouKei 上阳台, 一只麻雀飞过, YouKei 头撞玻璃",
+      "hook_type": "信息钩",
+      "hook_subtype": "证据揭露",
+      "hook_text_template": "YouKei 盯着窗外那个移动的小黑点, 第一次发出 '咔咔' 声",
+      "satisfaction_types": ["悬念揭秘"],
+      "satisfaction_intensity": "★★★",
+      "key_moments": [
+        "0:05 - 主人抱 YouKei 第一次到阳台",
+        "0:25 - 麻雀飞过, YouKei 瞳孔放大",
+        "0:50 - YouKei 头撞玻璃 (萌点 + 心痛)",
+        "1:10 - YouKei 退后一步, 又冲上去"
+      ],
+      "rhythm_notes": "信息钩: 给观众留 '它会撞几次?' 的疑问",
+      "next_episode_seed": "EP04 厨房事变, 鱼被偷"
+    },
+    {
+      "ep": 4,
+      "title": "🐟 厨房事变",
+      "stage": "攀升段",
+      "stage_position_pct": 33,
+      "scene": "厨房 + 客厅",
+      "core_conflict": "YouKei 把我没吃完的鱼叼到沙发下藏起来",
+      "logline": "晚饭剩的清蒸鱼放厨房, 主人洗个澡出来, 鱼不见了, 沙发下传来咀嚼声",
+      "hook_type": "反转钩",
+      "hook_subtype": "动机反转",
+      "hook_text_template": "沙发下那个湿湿的东西, 不是水, 是鱼——我以为它在玩, 其实它在藏",
+      "satisfaction_types": ["打脸复仇"],
+      "satisfaction_intensity": "★★★",
+      "key_moments": [
+        "0:05 - 主人把鱼放厨房, 准备洗澡",
+        "0:30 - 洗澡出来, 鱼盘空了",
+        "0:55 - 找到沙发下, YouKei 在吃",
+        "1:15 - 主人想抓, YouKei 叼着鱼跑"
+      ],
+      "rhythm_notes": "反转钩: '它在玩' → '其实它在藏' (本能胜利)",
+      "next_episode_seed": "EP05 洗澡大作战, 第一次洗澡"
+    },
+    {
+      "ep": 5,
+      "title": "🛁 洗澡大作战",
+      "stage": "攀升段",
+      "stage_position_pct": 42,
+      "scene": "卫生间",
+      "core_conflict": "YouKei 第一次洗澡, 全程爆走 + 抓伤",
+      "logline": "主人准备给猫洗澡, YouKei 抓伤主人 + 泼水 + 逃跑 (3 次)",
+      "hook_type": "悬念钩",
+      "hook_subtype": "结果悬念",
+      "hook_text_template": "主人抹脸时, 突然发现 YouKei 已经跳到书房键盘上 — EP06 预告",
+      "satisfaction_types": ["情感爆发", "悬念揭秘"],
+      "satisfaction_intensity": "★★★★",
+      "key_moments": [
+        "0:05 - 主人试水温, YouKei 门口发呆",
+        "0:25 - 进浴缸瞬间 4 爪抓盆边",
+        "0:55 - 主人脸被泼水 (慢动作)",
+        "1:15 - 毛巾裹成猫卷, 露半张脸"
+      ],
+      "rhythm_notes": "中段冲突密集, 末钩留 EP06 预告",
+      "next_episode_seed": "EP06 电脑前的观众, 趴键盘"
+    },
+    {
+      "ep": 6,
+      "title": "💻 电脑前的观众",
+      "stage": "攀升段",
+      "stage_position_pct": 50,
+      "scene": "次卧 (书房)",
+      "core_conflict": "我加班 YouKei 趴键盘, 误发奇怪邮件",
+      "logline": "深夜加班, YouKei 跳上键盘, 邮件误发给 CEO, 主题 '喵喵喵'",
+      "hook_type": "情绪钩",
+      "hook_subtype": "心碎中断",
+      "hook_text_template": "邮件发出去了, 收件人是 CEO, 主题 '喵喵喵' — 老板的脸凝固了",
+      "satisfaction_types": ["情感爆发"],
+      "satisfaction_intensity": "★★★",
+      "key_moments": [
+        "0:05 - 主人深夜加班, YouKei 在旁陪",
+        "0:35 - YouKei 跳上键盘 (慢动作)",
+        "1:00 - 邮件发出, 主题 '喵喵喵'",
+        "1:15 - 主人脸凝固, YouKei 眯眼打呼噜"
+      ],
+      "rhythm_notes": "情绪钩: 主人崩溃 vs 猫满足 (反差)",
+      "next_episode_seed": "EP07 窗台哲学家, 看楼下遛狗"
+    },
+    {
+      "ep": 7,
+      "title": "🪟 窗台哲学家",
+      "stage": "风暴段",
+      "stage_position_pct": 58,
+      "scene": "客厅窗台",
+      "core_conflict": "YouKei 看楼下遛狗的人, 困惑脸",
+      "logline": "周末午后, YouKei 第一次看楼下遛狗, 困惑 '狗为啥要被牵着?'",
+      "hook_type": "信息钩",
+      "hook_subtype": "证据揭露",
+      "hook_text_template": "YouKei 盯着楼下那只狗, 突然扭头看我 — 它在想什么?",
+      "satisfaction_types": ["悬念揭秘"],
+      "satisfaction_intensity": "★★★",
+      "key_moments": [
+        "0:05 - 主人晒衣服, YouKei 跳上窗台",
+        "0:30 - 楼下小狗路过, YouKei 歪头 45 度",
+        "1:00 - 主人画外音: '它可能在想...'",
+        "1:20 - 主人想到自己也被 '拴' 在家"
+      ],
+      "rhythm_notes": "信息钩: '它在想什么?' + 主人共鸣 (拟人化心理)",
+      "next_episode_seed": "EP08 朋友来访, 对猫毛过敏"
+    },
+    {
+      "ep": 8,
+      "title": "👥 朋友来访",
+      "stage": "风暴段",
+      "stage_position_pct": 67,
+      "scene": "客厅 + 玄关",
+      "core_conflict": "朋友对猫毛过敏打喷嚏, YouKei 反而蹭他",
+      "logline": "朋友来家里, 全程打喷嚏, YouKei 主动蹭他, 朋友笑了",
+      "hook_type": "反转钩",
+      "hook_subtype": "身份反转",
+      "hook_text_template": "朋友一直打喷嚏, 突然不打了 — YouKei 蹭了他一脸口水, 他居然笑了",
+      "satisfaction_types": ["打脸复仇", "情感爆发"],
+      "satisfaction_intensity": "★★★★",
+      "key_moments": [
+        "0:05 - 门铃响, 朋友拎水果",
+        "0:30 - 朋友进门, YouKei 主动蹭腿",
+        "1:00 - 朋友打喷嚏 8 次",
+        "1:20 - 朋友笑了: '这猫, 值' (反转)"
+      ],
+      "rhythm_notes": "反转钩: '过敏嫌弃' → '真香'",
+      "next_episode_seed": "EP09 第一次外出, 猫包出门"
+    },
+    {
+      "ep": 9,
+      "title": "🚪 第一次外出",
+      "stage": "风暴段",
+      "stage_position_pct": 75,
+      "scene": "楼道 + 电梯",
+      "core_conflict": "把 YouKei 装猫包出门, 它全程叫",
+      "logline": "带 YouKei 出门买猫粮, 电梯里疯狂叫, 出电梯瞬间安静 (看到树)",
+      "hook_type": "危机钩",
+      "hook_subtype": "突袭",
+      "hook_text_template": "电梯门开了, 迎面是一只金毛 — YouKei 在猫包里疯狂挣扎",
+      "satisfaction_types": ["逆袭翻盘"],
+      "satisfaction_intensity": "★★★★",
+      "key_moments": [
+        "0:05 - 主人把 YouKei 装进猫包, YouKei 反抗",
+        "0:30 - 电梯里疯狂叫 (10 秒连续)",
+        "1:00 - 出电梯, 看到楼下大树",
+        "1:20 - 突然安静, 盯着树看 (翻盘)"
+      ],
+      "rhythm_notes": "危机钩 + 逆袭: '失控' → '被树治愈'",
+      "next_episode_seed": "EP10 摄影日, 拍表情包"
+    },
+    {
+      "ep": 10,
+      "title": "📸 摄影日",
+      "stage": "风暴段",
+      "stage_position_pct": 83,
+      "scene": "全屋",
+      "core_conflict": "给 YouKei 拍照纪念, 它一直动 + 表情包",
+      "logline": "想给 YouKei 拍写真, 拍了 100 张全是糊的, 删相机瞬间它看镜头",
+      "hook_type": "反转钩",
+      "hook_subtype": "局势反转",
+      "hook_text_template": "拍了 100 张, 全是糊的; 删掉相机的瞬间, YouKei 突然坐下看镜头",
+      "satisfaction_types": ["情感爆发", "悬念揭秘"],
+      "satisfaction_intensity": "★★★★",
+      "key_moments": [
+        "0:05 - 主人架相机, YouKei 走来走去",
+        "0:35 - 快门响 100 次, 全糊",
+        "1:05 - 主人放下相机叹气",
+        "1:15 - YouKei 突然坐下看镜头 (表情包)"
+      ],
+      "rhythm_notes": "反转钩: '失败' → '它配合的瞬间'",
+      "next_episode_seed": "EP11 生病记, 打喷嚏吓到查百度"
+    },
+    {
+      "ep": 11,
+      "title": "🤒 生病记",
+      "stage": "决战段",
+      "stage_position_pct": 92,
+      "scene": "主卧",
+      "core_conflict": "YouKei 第一次打喷嚏, 我吓到查百度",
+      "logline": "凌晨 3 点, YouKei 打喷嚏, 主人彻夜查百度, 通宵陪护",
+      "hook_type": "危机钩",
+      "hook_subtype": "暴露",
+      "hook_text_template": "半夜 3 点, YouKei 打喷嚏了 — 我打开手机, 跳出来 12 个搜索结果: '猫打喷嚏会死吗'",
+      "satisfaction_types": ["情感爆发"],
+      "satisfaction_intensity": "★★★★★",
+      "key_moments": [
+        "0:05 - 主人睡梦中听到 '阿嚏'",
+        "0:30 - 主卧找到 YouKei, 摸它鼻子",
+        "1:00 - 主人开手机, 搜索 12 个结果",
+        "1:20 - 主人抱 YouKei 在床上, 通宵陪"
+      ],
+      "rhythm_notes": "危机钩最强 + 情感爆发最深 (通宵陪护)",
+      "next_episode_seed": "EP12 冬至, 季末温馨收束"
+    },
+    {
+      "ep": 12,
+      "title": "🎄 季末冬至",
+      "stage": "决战段",
+      "stage_position_pct": 100,
+      "scene": "客厅 + 阳台",
+      "core_conflict": "(无冲突, 温馨收束)",
+      "logline": "冬至包饺子, YouKei 偷面团, 主人追, 季末温馨",
+      "hook_type": null,
+      "hook_subtype": null,
+      "hook_text_template": "(末集无钩子, 圆满收束)",
+      "satisfaction_types": ["情感爆发"],
+      "satisfaction_intensity": "★★★★★",
+      "key_moments": [
+        "0:05 - 主人揉面, YouKei 在旁看",
+        "0:35 - YouKei 一爪拍上面团",
+        "1:05 - 主人追, YouKei 叼面团跑",
+        "1:25 - 主人抱起 YouKei, 一起看窗外 (定格)"
+      ],
+      "rhythm_notes": "末集无钩子, 给观众满足感 + 季 2 预告",
+      "next_episode_seed": "(季 2 预告: 新年第一天, YouKei 看烟火 + 听鞭炮)"
+    }
+  ],
+  "season2_hook": {
+    "teaser": "新年第一天, YouKei 跳上窗台看烟火, 第一次听到鞭炮声, 它会怎么反应?",
+    "reveal_date": "2026-12-31 23:50 (除夕夜 EP01 预告)",
+    "season2_open_date": "(等季 1 收官后老板拍板)"
+  },
+  "quality_targets": {
+    "每集字数": "300-500 字 (中文 Markdown)",
+    "shot_count": "3-8 个",
+    "duration_target_s": "30-90",
+    "emotion_peaks_per_episode": "至少 1 个 (15% / 50% / 85% 位置)",
+    "hook_strength_min": "中等 (EP01-02 引入期) / 强 (EP03-10) / 极强 (EP11) / 无 (EP12)"
+  }
+}
