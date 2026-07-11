@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_meta": {
+    "version": "0.3.0",
+    "purpose": "5 类钩子的判定标准 + 验证规则 (Layer 3 Hard Check 使用)",
+    "source": "data/knowledge/references/hook-design.md (fork 自 short-drama, MIT)",
+    "config_source": "data/seasons/season-01.json hook_type_distribution_config",
+    "called_by": "src/hard_check.py + src/memory_constraints.py"
+  },
+  "hook_types": {
+    "情绪钩": {
+      "definition": "用情感画面/拟人化心理让观众产生共鸣",
+      "subtypes": {
+        "甜蜜中断": "温馨场景被突然打断 (例: 关灯后猫踩肚子)",
+        "心碎中断": "暖心瞬间被意外破坏 (例: 加班猫误发邮件)",
+        "反差反讽": "主人崩溃 vs 猫满足"
+      },
+      "indicators": [
+        "画面有强烈情感对比 (主人 vs 猫)",
+        "字幕有'我以为...其实...'结构",
+        "拟声词密集 (喵/咔咔/噗嗤)"
+      ],
+      "verifier_keywords": ["我以为", "原来", "突然", "居然", "结果"],
+      "config_distribution": 0.30,
+      "season01_usage": ["EP02 第一夜", "EP06 电脑前的观众"],
+      "design_template": "我闭上眼，背后传来轻轻的呼噜——突然，一只爪子踩在我肚子上"
+    },
+    "悬念钩": {
+      "definition": "制造'接下来会怎样?'的悬念",
+      "subtypes": {
+        "来者悬念": "画面出现神秘对象 (例: 纸箱突然动了)",
+        "结果悬念": "动作进行中突然切走 (例: 猫洗澡到一半切书房)",
+        "时间悬念": "时间跳转 + 状态变化 (例: 3 小时前 vs 现在)"
+      },
+      "indicators": [
+        "画面有'未完成动作'被切走",
+        "字幕有问号",
+        "镜头在高潮前定格"
+      ],
+      "verifier_keywords": ["?", "突然", "下一秒", "没想到", "究竟"],
+      "config_distribution": 0.25,
+      "season01_usage": ["EP01 搬家日", "EP05 洗澡大作战"],
+      "design_template": "客厅尽头那个最大的纸箱，突然动了一下"
+    },
+    "反转钩": {
+      "definition": "观众预期被反转打脸",
+      "subtypes": {
+        "动机反转": "观众以为是 A,实际是 B (例: 以为在玩,其实在藏)",
+        "身份反转": "观众以为是受害者,实际是赢家 (例: 过敏嫌弃→真香)",
+        "局势反转": "看似失败的瞬间,突然反转 (例: 拍照失败→猫配合)"
+      },
+      "indicators": [
+        "字幕有'其实/原来/没想到'",
+        "画面有 2 个时间点对比",
+        "前后情绪反差极大"
+      ],
+      "verifier_keywords": ["其实", "原来", "没想到", "结果", "没想到", "反而"],
+      "config_distribution": 0.20,
+      "season01_usage": ["EP04 厨房事变", "EP08 朋友来访", "EP10 摄影日"],
+      "design_template": "拍了 100 张，全是糊的；删掉相机的瞬间，YouKei 突然坐下看镜头"
+    },
+    "信息钩": {
+      "definition": "提供新信息/证据,激发观众'求知欲'",
+      "subtypes": {
+        "证据揭露": "发现异常现象 (例: 猫对镜迷茫)",
+        "知识传递": "科普猫的本能/心理 (例: 猫为啥盯着窗外)",
+        "关系揭示": "揭示隐藏关系 (例: 主人和猫的真正情感)"
+      },
+      "indicators": [
+        "画面有'第一次/新发现'标志",
+        "字幕有'原来猫会...'",
+        "镜头有特写/慢动作"
+      ],
+      "verifier_keywords": ["第一次", "原来", "真相", "证据", "原来如此"],
+      "config_distribution": 0.15,
+      "season01_usage": ["EP03 阳台征服", "EP07 窗台哲学家"],
+      "design_template": "YouKei 盯着窗外那个移动的小黑点，第一次发出 '咔咔' 声"
+    },
+    "危机钩": {
+      "definition": "制造紧急/危险/冲突画面,激发肾上腺素",
+      "subtypes": {
+        "突袭": "突然出现意外对象 (例: 电梯里出现金毛)",
+        "暴露": "秘密被发现/危险临近 (例: 猫半夜打喷嚏)",
+        "倒计时": "时间紧迫 + 紧迫任务 (例: 电梯门开瞬间)"
+      },
+      "indicators": [
+        "画面有'紧急/紧张/危险'氛围",
+        "字幕有'X 秒/Y 小时'倒计时",
+        "音乐/灯光有变化"
+      ],
+      "verifier_keywords": ["紧急", "危险", "突然", "一秒", "倒计时"],
+      "config_distribution": 0.10,
+      "season01_usage": ["EP09 第一次外出", "EP11 生病记"],
+      "design_template": "半夜 3 点，YouKei 打喷嚏了 — 我打开手机，跳出来 12 个搜索结果：'猫打喷嚏会死吗'"
+    }
+  },
+  "validation_rules": {
+    "must_match_season_config": true,
+    "config_source_field": "data/seasons/season-XX.json hook_type_distribution_config",
+    "tolerance_pct": 0.10,
+    "tolerance_note": "每类钩子占比允许 ±10% 偏离配置 (避免过于死板)",
+    "EP12_exception": {
+      "allow_null_hook": true,
+      "note": "EP12 季末温馨集允许 hook_type=null,但必须有温馨定格 + 季 2 预告"
+    }
+  },
+  "layer3_hard_check": {
+    "enabled": true,
+    "checks": [
+      "shot 末 3s 字幕必须包含当前 hook_type 的 verifier_keywords 至少 1 个",
+      "EP12 必须有 '定格/圆满/季末' 类关键词 + season2_hook.teaser",
+      "非 EP12 任何一集 hook_type=null → FAIL",
+      "verifier_keywords 缺失 0 个时 → 标记 'hook 强度不足',但不 FAIL"
+    ]
+  }
+}

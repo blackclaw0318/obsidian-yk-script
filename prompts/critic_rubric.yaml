@@ -1,0 +1,197 @@
+# critic_rubric.yaml — Critic (Layer 2) 评审维度与阈值
+# ----------------------------------------------------------------------------
+# 作用: 给 minimax M2.7 注入"幽默评审团"的多视角评审维度
+# 调用方: src/critic.py Layer 2 critique_episode()
+# 设计思想: 借鉴 COMIC 论文 (UWash 2026, arXiv:2603.11048) 的 "YouTube-Aligned Critics"
+#           + 爆款短剧公式 + 5 类钩子 + 5 类爽点
+# 总分 50 分,>=38 分 PASS (76% 及格线),<38 分 FAIL → 触发 Layer 1 重写 1 次
+# ----------------------------------------------------------------------------
+
+version: "0.3.0"
+agent: "critic"
+layer: 2
+
+# ===== 模型配置 =====
+model:
+  provider: "minimax"
+  base_url_env: "MINIMAXI_BASE_URL"
+  model_env: "MINIMAXI_TEXT_MODEL"
+  temperature: 0.3                   # 评审需要客观,温度低
+  max_tokens: 4000
+  stream: false
+
+# ===== 评审阈值 =====
+threshold:
+  total_pass: 38                     # >=38/50 算 PASS (76%)
+  total_excellent: 45                # >=45/50 算 EXCELLENT (90%)
+  perspective_min_pass: 4            # 任一单一视角 < 4/15 → 触发"维度专审"
+  max_retries: 1                     # 失败时触发 Layer 1 重写 1 次
+
+# ===== 5 个评审维度 (50 分制) =====
+perspectives:
+
+  # ----------------------------------------------------------------------
+  # 维度 1: 幽默评审 (15 分) — 借鉴 COMIC Humor Critics
+  # ----------------------------------------------------------------------
+  - id: "humor"
+    name: "幽默评审"
+    weight: 15
+    focus: "冲突密度 + 反转设计 + 笑点自然度"
+    system_prompt: |
+      你是一名资深短视频幽默评审 (抖音/B站/小红书 3 年评审经验)。
+      评审维度:
+      1. **冲突密度 (5 分)**: 每 42s 是否有一次情节推进? 高密度 = 强爽感
+      2. **反转设计 (4 分)**: 末 3s 是否有反转? 反转是否自然不突兀?
+      3. **笑点自然度 (3 分)**: 是"真实生活"笑点还是"刻意搞笑"? 冷幽默 > 硬搞笑
+      4. **节奏曲线 (3 分)**: 是否有 15% / 50% / 85% 三个情绪波峰?
+    scoring_rubric:
+      "5": "完美,无可挑剔"
+      "4": "优秀,小瑕疵"
+      "3": "合格,需改进"
+      "2": "勉强,有明显问题"
+      "1": "不合格,无法使用"
+      "0": "严重违反 (如刻意搞笑/无冲突)"
+
+  # ----------------------------------------------------------------------
+  # 维度 2: 萌点评审 (15 分) — 本剧核心 (猫视角 + 反差萌)
+  # ----------------------------------------------------------------------
+  - id: "cuteness"
+    name: "萌点评审"
+    weight: 15
+    focus: "YouKei 戏份 + 表情捕捉 + 反差萌设计"
+    system_prompt: |
+      你是一名"猫奴视角"评审 (资深猫奴,看萌宠视频 5 年)。
+      评审维度:
+      1. **YouKei 戏份占比 (5 分)**: 猫是否真的当主角? (建议 60%+ 镜头)
+      2. **招牌动作捕捉 (4 分)**: 是否用到歪头杀/钻纸箱/踩奶/露肚子/踩肚子 至少 1 个?
+      3. **反差萌设计 (3 分)**: 大体型 vs 胆小/猫聪明 vs 主人傻/满足感 vs 主人崩溃?
+      4. **拟声词/字幕萌感 (3 分)**: 喵/咔咔/嘶——是否自然? 字幕是否"猫会说话"的错觉?
+    scoring_rubric:
+      "5": "完美"
+      "4": "优秀"
+      "3": "合格"
+      "2": "勉强"
+      "1": "不合格"
+      "0": "严重违反 (猫沦为道具/无招牌动作)"
+
+  # ----------------------------------------------------------------------
+  # 维度 3: 连续性评审 (10 分) — 借鉴 COMIC Sequential Memory
+  # ----------------------------------------------------------------------
+  - id: "continuity"
+    name: "连续性评审"
+    weight: 10
+    focus: "时间线 + 上集钩子回收 + 角色位置合理性"
+    system_prompt: |
+      你是一名"剧本连贯性"评审 (看过完整季 12 集 + 衔接严苛)。
+      评审维度:
+      1. **上集钩子回收 (3 分)**: 上一集 next_episode_seed 是否在本集被合理展开?
+      2. **时间线连贯 (3 分)**: 24h 内时间跳转是否合理? 季节/天气/灯光是否一致?
+      3. **角色位置合理性 (2 分)**: 公寓布局是否自洽 (猫不可能瞬间从客厅到阳台)?
+      4. **本集钩子交付 (2 分)**: 本集钩子是否给下一集留好 seed?
+    scoring_rubric:
+      "5": "完美"
+      "4": "优秀"
+      "3": "合格"
+      "2": "勉强"
+      "1": "不合格"
+      "0": "严重违反 (时间悖论/位置瞬移)"
+
+  # ----------------------------------------------------------------------
+  # 维度 4: 节奏评审 (5 分) — 爆款公式核心
+  # ----------------------------------------------------------------------
+  - id: "rhythm"
+    name: "节奏评审"
+    weight: 5
+    focus: "shot 数 + 时长 + 情绪波峰位置"
+    system_prompt: |
+      你是一名"短视频节奏"评审 (抖音算法 + 完播率视角)。
+      评审维度:
+      1. **shot 数 (2 分)**: 3-8 个? (少=单调,多=剪辑灾难)
+      2. **时长 (2 分)**: 30-90s? 末集可 90s,其他 30-75s
+      3. **情绪波峰位置 (1 分)**: 15% / 50% / 85% 至少 1 处? 位置准吗?
+    scoring_rubric:
+      "5": "完美"
+      "3": "合格"
+      "1": "勉强"
+      "0": "严重违反"
+
+  # ----------------------------------------------------------------------
+  # 维度 5: 红线评审 (5 分) — 硬约束,任何 0 分 = FAIL
+  # ----------------------------------------------------------------------
+  - id: "red_line"
+    name: "红线评审"
+    weight: 5
+    focus: "8 主角红线 + 6 公寓红线 + 5 猫红线"
+    hard_constraint: true              # 任一红线 0 分 → 整集 FAIL 不接受重写
+    system_prompt: |
+      你是一名"内容合规"评审 (一票否决权)。
+      检查清单 (任一违反 = 0 分):
+
+      ## 主角红线 (8 条)
+      {% for item in character_protagonist.forbidden %}
+      {{ item }}
+      {% endfor %}
+
+      ## 公寓红线 (6 条)
+      {% for item in character_apartment.forbidden_in_apartment %}
+      {{ item }}
+      {% endfor %}
+
+      ## YouKei 红线 (5 条)
+      {% for item in character_youkei.forbidden %}
+      {{ item }}
+      {% endfor %}
+
+      评分:
+      - 全部通过 = 5 分
+      - 1 条边缘模糊 = 3 分 (触发 Layer 1 重写)
+      - 1 条明确违反 = 0 分 (整集 FAIL,直接人工)
+    scoring_rubric:
+      "5": "全部通过"
+      "3": "边缘模糊 (重写)"
+      "0": "明确违反 (整集 FAIL)"
+
+# ===== 评审综合逻辑 =====
+aggregation:
+  total_weight: 50
+  formula: "sum(perspective.score * perspective.weight / 5)"
+  # 例: 幽默 5/5*15 + 萌点 4/5*15 + 连续性 4/5*10 + 节奏 4/5*5 + 红线 5/5*5
+  #     = 15 + 12 + 8 + 4 + 5 = 44/50 → EXCELLENT
+
+# ===== Critic 输出 JSON Schema =====
+output_schema:
+  type: "object"
+  required:
+    - "episode_id"
+    - "perspectives"
+    - "total_score"
+    - "verdict"
+    - "feedback"
+    - "should_rewrite"
+  properties:
+    episode_id:
+      type: "integer"
+      description: "EP 编号"
+    perspectives:
+      type: "array"
+      items:
+        type: "object"
+        properties:
+          id: { type: "string", enum: ["humor", "cuteness", "continuity", "rhythm", "red_line"] }
+          score: { type: "integer", minimum: 0, maximum: 5 }
+          reason: { type: "string", description: "≤100 字评审理由" }
+          improvement: { type: "string", description: "≤50 字改进建议" }
+    total_score:
+      type: "integer"
+      minimum: 0
+      maximum: 50
+    verdict:
+      type: "string"
+      enum: ["EXCELLENT", "PASS", "FAIL"]
+      description: "≥45=EXCELLENT, 38-44=PASS, <38=FAIL"
+    feedback:
+      type: "string"
+      description: "≤200 字综合反馈,FAIL 时必填"
+    should_rewrite:
+      type: "boolean"
+      description: "verdict=FAIL 时 true,触发 Layer 1 重写"

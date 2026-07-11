@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_meta": {
+    "version": "0.3.0",
+    "purpose": "5 类爽点的判定标准 + 强度评分 + 配比验证",
+    "source": "data/knowledge/references/satisfaction-matrix.md (fork 自 short-drama, MIT)",
+    "config_source": "data/seasons/season-01.json satisfaction_matrix_config",
+    "called_by": "src/critic.py Layer 2 (cuteness 维度) + src/hard_check.py Layer 3"
+  },
+  "satisfaction_types": {
+    "情感爆发": {
+      "definition": "观众被角色情感打动,产生共情",
+      "intensity_levels": {
+        "★★★★★": "极强 (通宵陪护/季末定格/重大和解)",
+        "★★★★": "强 (温馨升级/猫主动示好)",
+        "★★★": "中 (日常萌点)",
+        "★★": "弱 (偶尔温馨)",
+        "★": "微 (勉强有情感)"
+      },
+      "indicators": [
+        "画面有强烈情感对比",
+        "BGM 转为温暖旋律",
+        "字幕有第一人称感慨"
+      ],
+      "verifier_keywords": ["感动", "心疼", "温暖", "陪伴", "一起", "抱着"],
+      "config_weight": 0.60,
+      "season01_avg_intensity": "★★★★ (EP11/12 为 ★★★★★)",
+      "design_template": "凌晨 3 点，主人抱 YouKei 在床上，通宵陪"
+    },
+    "悬念揭秘": {
+      "definition": "观众好奇心得到满足,谜底揭晓",
+      "intensity_levels": {
+        "★★★★★": "极强 (揭示核心秘密)",
+        "★★★★": "强 (揭示猫的隐藏行为)",
+        "★★★": "中 (解释猫的本能)",
+        "★★": "弱 (略有所得)",
+        "★": "微 (略提一句)"
+      },
+      "indicators": [
+        "画面有'发现/揭秘'标志",
+        "字幕有'原来/真相'",
+        "镜头有特写/证据展示"
+      ],
+      "verifier_keywords": ["原来", "真相", "原来如此", "终于知道", "证据"],
+      "config_weight": 0.20,
+      "season01_avg_intensity": "★★★ (EP11 强)",
+      "design_template": "YouKei 盯着楼下那只狗，突然扭头看我 — 它在想什么?"
+    },
+    "打脸复仇": {
+      "definition": "观众为角色(常为猫)获胜而爽快",
+      "intensity_levels": {
+        "★★★★★": "极强 (大胜)",
+        "★★★★": "强 (小胜)",
+        "★★★": "中 (小赢)",
+        "★★": "弱 (略胜)",
+        "★": "微 (略赢)"
+      },
+      "indicators": [
+        "画面有'赢/偷/抢/叼'行为",
+        "字幕有'赢/叼/偷/抢到'",
+        "镜头有'主人吃瘪 vs 猫赢'对比"
+      ],
+      "verifier_keywords": ["赢", "偷", "叼走", "藏起来", "得手", "抢到"],
+      "config_weight": 0.10,
+      "season01_avg_intensity": "★★★ (EP08 强)",
+      "design_template": "沙发下那个湿湿的东西，不是水，是鱼——我以为它在玩，其实它在藏"
+    },
+    "逆袭翻盘": {
+      "definition": "看似失败的瞬间,绝处逢生",
+      "intensity_levels": {
+        "★★★★★": "极强 (大翻盘)",
+        "★★★★": "强 (中翻盘)",
+        "★★★": "中 (小翻盘)",
+        "★★": "弱 (略翻)",
+        "★": "微 (略好)"
+      },
+      "indicators": [
+        "画面有'失败→成功'对比",
+        "字幕有'没想到/居然'",
+        "镜头有'情绪反转'"
+      ],
+      "verifier_keywords": ["没想到", "居然", "突然", "逆袭", "反转", "翻盘"],
+      "config_weight": 0.05,
+      "season01_avg_intensity": "★★★★ (EP09 强)",
+      "design_template": "电梯门开了，迎面是一只金毛 — YouKei 在猫包里疯狂挣扎 → 突然看到树安静"
+    },
+    "身份碾压": {
+      "definition": "猫的高贵身份/本能压制主人 (本剧弱,主要用反差)",
+      "intensity_levels": {
+        "★★★★★": "极强 (大碾压,本剧极少用)",
+        "★★★★": "强 (中碾压)",
+        "★★★": "中 (小碾压)",
+        "★★": "弱 (略压)",
+        "★": "微 (略提)"
+      },
+      "indicators": [
+        "画面有'猫高贵 vs 主人卑微'对比",
+        "字幕有'我输了/它赢了'",
+        "镜头有'主人认输'动作"
+      ],
+      "verifier_keywords": ["我输了", "它赢了", "投降", "认输", "被碾压"],
+      "config_weight": 0.05,
+      "season01_avg_intensity": "★★ (本剧弱化使用,避免炫富/狗血)",
+      "design_template": "我把它当能听懂，经常解释自己的行为 — 它听不听？我不知道"
+    }
+  },
+  "validation_rules": {
+    "must_match_season_config": true,
+    "config_source_field": "data/seasons/season-XX.json satisfaction_matrix_config",
+    "tolerance_pct": 0.15,
+    "tolerance_note": "整体配比允许 ±15% 偏离 (避免单一爽点堆叠)",
+    "season1_target": {
+      "情感爆发": 0.60,
+      "悬念揭秘": 0.20,
+      "打脸复仇": 0.10,
+      "逆袭翻盘": 0.05,
+      "身份碾压": 0.05
+    },
+    "stage_adaptations": {
+      "起势段": {
+        "ep_range": "EP01-EP02",
+        "配比": "情感爆发 100% (建立核心情感)"
+      },
+      "攀升段": {
+        "ep_range": "EP03-EP06",
+        "配比": "情感 60% + 揭秘 25% + 打脸 15%"
+      },
+      "风暴段": {
+        "ep_range": "EP07-EP10",
+        "配比": "情感 50% + 揭秘 20% + 打脸 15% + 逆袭 15%"
+      },
+      "决战段": {
+        "ep_range": "EP11-EP12",
+        "配比": "情感 90% + 揭秘 10% (回归情感为主)"
+      }
+    }
+  },
+  "layer3_hard_check": {
+    "enabled": true,
+    "checks": [
+      "本集 satisfaction_intensity 必须 ≥ 评级对应的 intensity_levels",
+      "情感爆发类必须 verifier_keywords 至少 1 个",
+      "身份碾压类强度 >★★★ → 警告 (本剧调性是'暖',不是'碾压')",
+      "EP12 必须 satisfaction_intensity = ★★★★★ + 类型 = ['情感爆发']"
+    ]
+  }
+}

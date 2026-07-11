@@ -1,0 +1,303 @@
+# memory_constraints.yaml — Memory Manager + Layer 3 Hard Check 硬约束
+# ----------------------------------------------------------------------------
+# 作用: 定义 3 大类硬约束 (时间线/角色位置/上集钩子) + 跨集记忆管理规则
+# 调用方: src/memory_constraints.py (Layer 3 之前预检) + src/hard_check.py (Layer 3 之后复检)
+# 设计思想: 借鉴 COMIC Sequential Memory Bank + Save the Cat 连续性 + 老板隐私红线
+# ----------------------------------------------------------------------------
+
+version: "0.3.0"
+agent: "memory_manager + hard_check"
+layer: "pre-L3 + L3"
+
+# ===== 跨集记忆管理 =====
+memory_bank:
+  storage: "data/state/memory_bank.json"   # 跨集状态 (gitignored, 本地缓存)
+  backup_to_github: true                   # 每天 GitHub backup 时同步
+  schema:
+    type: "object"
+    required: ["season_id", "episodes"]
+    properties:
+      season_id:
+        type: "integer"
+        description: "季号"
+      last_updated:
+        type: "string"
+        format: "date-time"
+      episodes:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            ep: { type: "integer" }
+            title: { type: "string" }
+            stage: { type: "string", enum: ["起势段", "攀升段", "风暴段", "决战段"] }
+            key_facts:
+              type: "array"
+              description: "本集确定的事实 (猫学会跳窗台/偷鱼/打喷嚏 等)"
+              items: { type: "string" }
+            locations_used:
+              type: "array"
+              items: { type: "string" }
+              description: "本集使用的场景 (room_living/room_kitchen/...)"
+            time_markers:
+              type: "array"
+              items: { type: "string" }
+              description: "本集使用的时间点 (20:00/凌晨 3 点)"
+            youkei_state:
+              type: "object"
+              description: "猫在本集结束时的状态"
+              properties:
+                position: { type: "string" }
+                emotion: { type: "string" }
+                learned_skills: { type: "array" }
+            hook_delivered:
+              type: "string"
+              description: "本集是否兑现了上一集的 next_episode_seed"
+            hook_seed_for_next:
+              type: "string"
+              description: "留给下一集的钩子"
+
+# ===== Layer 3 Hard Check 4 大类硬约束 =====
+hard_constraints:
+
+  # ----------------------------------------------------------------------
+  # 类别 1: 时间线冲突检测
+  # ----------------------------------------------------------------------
+  - id: "timeline_consistency"
+    name: "时间线连贯性"
+    severity: "FAIL"
+    description: "本集时间线必须跟 season-XX.json + 上一集一致,不允许 24h 内时间悖论"
+    rules:
+      - id: "no_time_paradox"
+        description: "本集不能与已有 6 集事实冲突 (例: 已搬进 60 平,不能再去旧家)"
+        check_method: "compare_with_memory_bank"
+      - id: "weather_consistency"
+        description: "季节/天气/灯光必须在同一天内一致 (例: 上午晴天,中午不能突然暴雨)"
+        check_method: "validate_within_episode"
+      - id: "cat_age_progression"
+        description: "YouKei 月龄必须随 EP 推进 (EP01=7月龄, EP12 应=7.4月龄左右)"
+        check_method: "validate_across_episodes"
+      - id: "no_overlapping_narrative"
+        description: "上下集不能在同一时间点有矛盾 (例: EP11 凌晨 3 点猫健康,EP12 不能突然称 3 天前猫就生病)"
+        check_method: "validate_across_episodes"
+
+  # ----------------------------------------------------------------------
+  # 类别 2: 角色位置合理性 (公寓布局硬约束)
+  # ----------------------------------------------------------------------
+  - id: "character_position"
+    name: "角色位置合理性"
+    severity: "FAIL"
+    description: "猫和人必须在公寓布局内合理移动,不能瞬间转移"
+    apartment_layout:
+      room_living: "客厅 (18㎡, 主战场)"
+      room_bedroom_main: "主卧 (12㎡)"
+      room_bedroom_secondary: "次卧 (9㎡)"
+      room_kitchen: "厨房 (6㎡)"
+      room_bathroom: "卫生间 (4㎡)"
+      room_balcony: "阳台 (5㎡, 严禁护栏外侧)"
+    rules:
+      - id: "no_instant_teleport"
+        description: "同一 shot 内猫不能从客厅跳到阳台 (必须经过门/走廊)"
+        check_method: "validate_shot_sequence"
+      - id: "balcony_safety"
+        description: "阳台 shot 必须有 safety_warning 标注,严禁拍护栏外侧"
+        check_method: "validate_apartment_rules"
+      - id: "kitchen_safety"
+        description: "厨房 shot 不能有猫上灶台 (禁区)"
+        check_method: "validate_apartment_rules"
+      - id: "outdoor_requires_setup"
+        description: "外出场景必须有'装猫包/牵引绳'前因 (不能直接出现在花园)"
+        check_method: "validate_shot_sequence"
+
+  # ----------------------------------------------------------------------
+  # 类别 3: 上集钩子回收 + 本集钩子交付
+  # ----------------------------------------------------------------------
+  - id: "hook_continuity"
+    name: "钩子连续性"
+    severity: "FAIL"
+    description: "上集 next_episode_seed 必须在当前集兑现 + 当前集必须给下集留 seed"
+    rules:
+      - id: "previous_seed_delivered"
+        description: "本集必须在开场 0-8s 内兑现上一集的 next_episode_seed"
+        check_method: "compare_with_memory_bank.hook_delivered"
+      - id: "current_seed_for_next"
+        description: "本集必须在末 3s 内给下一集留 next_episode_seed"
+        check_method: "validate_episode_end"
+      - id: "no_hook_skip"
+        description: "EP01-EP11 不允许 hook_type=null (EP12 例外)"
+        check_method: "validate_episode_index"
+
+  # ----------------------------------------------------------------------
+  # 类别 4: 隐私/合规红线 (老板 8 条 + 公寓 6 条 + 猫 5 条)
+  # ----------------------------------------------------------------------
+  - id: "privacy_compliance"
+    name: "隐私合规红线"
+    severity: "HARD_FAIL"     # 任何 1 条违反 = 整集作废 + 推微信告警
+    description: "老板真名/正脸/真实住址/快递单/身份证/工作单位/争议话题/暴力血腥 全部禁止"
+    rules:
+      # 主角 8 条
+      - id: "no_real_face"
+        description: "❌ 露正脸 (含侧脸 45 度以上 / 正脸微笑 / 全脸)"
+        pattern_match:
+          - "正脸"
+          - "全脸"
+          - "45 度侧脸"
+        check_method: "substring_match"
+      - id: "no_real_name"
+        description: "❌ 暴露真实姓名/身份证/工作单位"
+        pattern_match:
+          - "身份证"
+          - "工作单位"
+          - "公司名"
+        check_method: "substring_match"
+      - id: "no_address_leak"
+        description: "❌ 暴露真实住址/小区/楼栋/楼层"
+        pattern_match:
+          - "楼栋号"
+          - "门牌号"
+          - "快递单"
+          - "街景"
+        check_method: "substring_match"
+      - id: "no_controversy"
+        description: "❌ 议论争议话题 (政治/宗教/性别对立)"
+        pattern_match:
+          - "政治"
+          - "宗教"
+          - "性别对立"
+        check_method: "substring_match"
+      - id: "no_violence"
+        description: "❌ 暴力血腥 (不拍血腥场面/不展示伤口)"
+        pattern_match:
+          - "血腥"
+          - "伤口"
+          - "暴力"
+        check_method: "substring_match"
+      - id: "no_swear"
+        description: "❌ 不文明用语/脏话"
+        pattern_match: []
+        check_method: "ai_judge"     # LLM 自查
+      - id: "no_cat_danger"
+        description: "❌ YouKei 危险动作 (爬窗台外侧/啃电线/上灶台)"
+        pattern_match:
+          - "爬窗台外侧"
+          - "啃电线"
+          - "上灶台"
+        check_method: "substring_match"
+      - id: "no_advertising"
+        description: "❌ 商业植入 (本季不接广告, 不演示产品)"
+        pattern_match: []
+        check_method: "ai_judge"
+
+      # 公寓 6 条
+      - id: "no_window_view"
+        description: "❌ 拍到窗户外的街景/标志性建筑"
+        check_method: "image_meta_check"     # 视频后期必须遮罩
+      - id: "no_door_number"
+        description: "❌ 拍到门牌号/楼层/楼栋号"
+        check_method: "image_meta_check"
+      - id: "no_courier_label"
+        description: "❌ 拍到快递单/身份证/银行卡"
+        check_method: "image_meta_check"
+      - id: "no_others_visible"
+        description: "❌ 拍到他人 (朋友需打码或侧脸)"
+        check_method: "image_meta_check"
+      - id: "no_luxury_show"
+        description: "❌ 展示昂贵物品 (避免炫富争议)"
+        check_method: "ai_judge"
+      - id: "no_messy_scene"
+        description: "❌ 脏乱差 (收拾好再拍)"
+        check_method: "ai_judge"
+
+      # YouKei 5 条
+      - id: "no_cat_speaking"
+        description: "❌ YouKei 不开口说话 (字幕可用喵/咔/嘶 表示)"
+        pattern_match: []     # 由 ai_judge 判定
+        check_method: "ai_judge"
+      - id: "no_high_jump"
+        description: "❌ 跳跃过高 (拍不到细节,后期难处理)"
+        check_method: "video_meta_check"
+      - id: "no_cat_danger_action"
+        description: "❌ 危险动作 (爬窗台外侧/啃电线/上灶台)"
+        pattern_match:
+          - "爬窗台外侧"
+          - "啃电线"
+          - "上灶台"
+        check_method: "substring_match"
+      - id: "no_cat_superpower"
+        description: "❌ 超能力 (开微波炉/拧水龙头)"
+        pattern_match:
+          - "开微波炉"
+          - "拧水龙头"
+        check_method: "substring_match"
+      - id: "no_cat_fight"
+        description: "❌ 暴力冲突 (与其他动物真打架)"
+        check_method: "video_meta_check"
+
+# ===== Memory Manager 给 LLM 的 prompt =====
+memory_manager_prompt: |
+  你是 Memory Manager,负责维护跨集记忆,确保本集与上下集无冲突。
+
+  ## 输入
+  - season-XX.json (本季骨架)
+  - memory_bank.json (前 N-1 集累积事实)
+  - 上一集 next_episode_seed
+  - 上一集 youkei_state (猫的位置/情感/已学技能)
+
+  ## 输出
+  ```json
+  {
+    "carry_over_facts": [
+      "EP01 搬进 60 平,YouKei 钻入最大纸箱",
+      "EP02 凌晨 3 点猫第一次跳上床踩肚子",
+      "EP03 猫第一次看鸟撞玻璃"
+    ],
+    "current_ep_setup": {
+      "previous_seed_must_deliver": "EP04 上集钩子: 鱼被偷 → 本集开场厨房灶台空盘",
+      "current_ep_position": "EP05,本季位置 42%",
+      "youkei_state_from_last": {
+        "position": "客厅沙发",
+        "emotion": "满足",
+        "learned_skills": ["钻纸箱", "看鸟", "偷鱼"]
+      }
+    },
+    "constraints_for_writer": [
+      "⚠️ 本集洗澡戏必须前置 'YouKei 从未洗过澡' (前 4 集未提)",
+      "⚠️ 本集不能让猫说话",
+      "⚠️ 本集不能露上坤正脸",
+      "⚠️ 厨房场景前置: 灶台空盘 (兑现上集偷鱼钩)"
+    ],
+    "timeline_snapshot": "EP05 上午 10 点, 晴"
+  }
+  ```
+
+# ===== Hard Check 给 LLM 的 prompt =====
+hard_check_prompt: |
+  你是 Hard Check (一票否决权),验证本集剧本是否违反硬约束。
+
+  ## 4 大类硬约束
+  1. **时间线连贯性**: 与 season-XX.json + 前 N-1 集无冲突
+  2. **角色位置合理性**: 公寓布局内,无瞬移
+  3. **钩子连续性**: 上集 seed 兑现 + 本集 seed 留出
+  4. **隐私合规红线**: 19 条规则 (老板 8 + 公寓 6 + 猫 5) 全部未触发
+
+  ## 输出
+  ```json
+  {
+    "verdict": "PASS" | "FAIL",
+    "violations": [
+      {
+        "constraint_id": "no_real_face",
+        "severity": "HARD_FAIL",
+        "shot_no": 5,
+        "evidence": "shot 5 字幕含 '我看到自己正脸'",
+        "fix_suggestion": "改为'我看到镜子里的自己'或不提脸"
+      }
+    ],
+    "warnings": [
+      "shot 3 阳台戏未标 safety_warning"
+    ],
+    "passed_constraints": 16,
+    "total_constraints": 19,
+    "should_publish": true   # violations 为空才 true
+  }
+  ```
