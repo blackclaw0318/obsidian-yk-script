@@ -1,33 +1,64 @@
 # ============================================================
-# obsidian-yk-script .gitignore
+# obsidian-yk-script .gitignore (v0.3)
 # ============================================================
 
-# 凭据
+# ── 凭据 ──
 .env
 .env.local
 .env.*.local
+**/secrets.json
 
-# 状态 / 日志
+# ── 状态 / 缓存 (运行时生成, gitignored) ──
+data/state/
 data/state.json
+data/state.json.lock
+data/memory.json
+data/cache/                      # v0.3: GitHub outline 拉取缓存
 data/continuity/prev_summaries.json
+
+# ── 日志 ──
 logs/
 *.log
+!logs/.gitkeep
+!logs/README.md
+
+# ── 输出 (dry-run 临时) ──
+output/
+
+# ── Python ──
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# 测试
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
 coverage/
 .coverage
 .nyc_output/
 
-# 编辑器 / 系统
+# ── 编辑器 / 系统 ──
 .vscode/
 .idea/
 .DS_Store
 *.swp
 *.swo
+*~
+Thumbs.db
 
-# 输出
-output/
+# ── 临时 ──
+.tmp/
+*.bak
+*.orig
+*.rej
+
+# ── 不忽略的特殊文件 ──
+!docs/
+!data/characters/                # 角色卡可在 GitHub web UI 编辑
+!data/seasons/                   # 大纲可在 GitHub web UI 编辑 (P5 决策)
+!data/knowledge/                 # 8 份 references 是 fork 资源,必须入库

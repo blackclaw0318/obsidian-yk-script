@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "obsidian-yk-script"
+version = "0.3.0"
+description = "每天自动生成《上坤 × YouKei》单元剧短视频脚本 + 备份 + 微信推送"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "黑 (Hei)", email = "hei@handfoot.local" },
+]
+requires-python = ">=3.12"
+keywords = ["short-drama", "minimax", "obsidian", "wechat-bot"]
+
+dependencies = [
+    "requests>=2.31",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0",
+    "pydantic>=2.5",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+    "requests-mock>=1.11",
+    "ruff>=0.1",
+    "mypy>=1.8",
+]
+
+[project.scripts]
+yk-daily = "src.daily:main"
+yk-pull-outline = "scripts.pull_outline:main"
+yk-verify-backup = "scripts.verify_backup:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "scripts*"]
+exclude = ["tests*", "data*", "docs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "integration: integration tests (mock external)",
+    "slow: slow tests (>5s)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["B011"]  # asserts OK in tests
+"scripts/**/*.py" = ["E402"]  # late imports OK in scripts
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+check_untyped_defs = true
+ignore_missing_imports = false
+exclude = [
+    "data/",
+    "docs/",
+    "tests/fixtures/",
+]
+
+[[tool.mypy.overrides]]
+module = ["pytest_mock", "requests_mock"]
+ignore_missing_imports = true
