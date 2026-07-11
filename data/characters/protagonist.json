@@ -1,59 +1,115 @@
 {
   "name": "上坤",
-  "real_name": "(未公开, Q1 化名决定)",
-  "occupation": "HandFoot 商业帝国老板 / AI 工程师 '黑' 的主人",
-  "appearance": {
-    "公开身份": "化名 '上坤'",
-    "出镜规则": "**只出手+配音, 不露脸** (Q1 老板拍板, 后期露脸再加)",
-    "体型": "(未指定)",
-    "服装": "家居服 / T恤+短裤 (周末); 衬衫+休闲裤 (工作)",
-    "声音": "(未指定, 配音风格: 温和 + 略带吐槽)"
+  "real_name_protected": true,
+  "real_name_note": "真名不入剧本, 视频后期也不露正脸",
+  "alias_for_story": "我",
+  "alias_in_dubbing": "上坤",
+  "alias_in_subtitles": "主人",
+  "gender": "男",
+  "age_range": "30+",
+  "occupation": "博主 / 工程师",
+  "appearance_visible": {
+    "face": "❌ 不露正脸 (后期不补, 永久只露手+背影)",
+    "hands": "✅ 主要出镜 (手部特写 / 抱猫 / 玩猫)",
+    "voice": "✅ 配音 (画外音为主, 偶尔对猫低声说话)",
+    "body_silhouette": "✅ 可露背影 / 侧影 / 腰部以下 (不露脸)",
+    "clothes_visible": "✅ 居家服为主 (T 恤 + 短裤 / 睡衣)",
+    "hair_visible": "⚠️ 仅露头顶或后脑勺 (不露正脸侧脸)",
+    "glasses": "✅ 可露",
+    "tattoo_visible": "❌ 无纹身"
   },
-  "voice_tone": {
-    "画外音": "温和 / 略带吐槽 / 偶尔自嘲",
-    "跟猫说话": "宠溺但假装严肃 (反差萌)",
-    "独处时": "自言自语, 给猫做心理旁白"
-  },
-  "daily_rhythm": {
-    "morning": "6-7 点被 YouKei 蹭醒",
-    "work": "远程办公 / 偶尔外出",
-    "evening": "回家陪 YouKei / 做饭 / 拍摄",
-    "night": "加班或与 YouKei 互动"
+  "appearance_hidden": {
+    "real_face": "永久不可曝光",
+    "real_voice_modulation": "可轻微变声 (避免声纹识别)",
+    "home_address": "❌ 不可入镜 (窗户不可拍到街景)",
+    "id_cards": "❌ 不可入镜",
+    "workplace_info": "❌ 不透露公司/具体职业"
   },
   "personality": [
-    "理性派 (HandFoot 商业帝国老板)",
-    "爱猫 (但嘴上不承认, 行为上很宠)",
-    "冷峻 (但有反差萌)",
-    "工作狂 (但被 YouKei 强制打断)",
-    "独居 (上海 60 平 + 一猫)"
+    "温润, 不张扬",
+    "对猫有极大耐心",
+    "幽默, 但偏冷幽默 (不刻意搞笑)",
+    "喜欢独处 + 跟猫相处",
+    "偶尔神经大条 (为剧情冲突制造反差)"
   ],
   "speaking_style": {
-    "口头禅_01": "哎... (无奈叹气)",
-    "口头禅_02": "你别... (准备阻止但来不及)",
-    "口头禅_03": "行吧 (妥协)",
-    "画外音模板": "我看着 YouKei [动作], 心想 [内心戏], 但是 [转折]"
-  },
-  "relationship_with_youkei": {
-    "type": "主人+宠物 (但心理上平等)",
-    "dominant": "看似主人主导, 实际 YouKei 控制节奏",
-    "love_language": "语言吐槽 + 行为宠溺",
-    "pet_peeves": [
-      "被踩肚子",
-      "凌晨蹦迪",
-      "偷鱼",
-      "趴键盘",
-      "咬充电线"
+    "tone": "温和低沉, 像跟猫说话的语气",
+    "sentence_length": "短句为主 (≤15 字), 像跟猫说话",
+    "catchphrases": [
+      "YouKei 别闹",
+      "你怎么又...",
+      "好了好了",
+      "乖"
     ],
-    "secret_love": [
-      "半夜偷偷拍 YouKei 睡颜",
-      "出差时视频通话看猫",
-      "给猫买比自己贵的玩具"
-    ]
+    "self_deprecation": "偶尔自嘲 (我的 vs 猫的对比)",
+    "no_swear": "❌ 不说脏话 / 不爆粗口"
+  },
+  "writing_style_in_script": {
+    "first_person": "我",
+    "second_person_to_cat": "你 (直接对 YouKei 说话)",
+    "narration_form": "画外音 + 字幕",
+    "thought_inner": "内心独白 (字幕, 不出声)",
+    "action_describe": "第三视角 (字幕, 描述我的动作)"
   },
   "forbidden": [
-    "❌ 露脸 (Q1 化名决定, 后期再说)",
-    "❌ 真名曝光 (化名 '上坤')",
-    "❌ 任何商业身份暴露",
-    "❌ 涉及 AI / 工程的内部信息"
-  ]
+    "❌ 露正脸 (含侧脸 45 度以上 / 正脸微笑 / 全脸)",
+    "❌ 暴露真实住址/小区 (窗户不出镜)",
+    "❌ 暴露真实姓名 / 身份证 / 工作单位",
+    "❌ 议论争议话题 (政治 / 宗教 / 性别对立)",
+    "❌ 暴力血腥 (不拍血腥场面 / 不展示伤口)",
+    "❌ 不文明用语 / 任何脏话",
+    "❌ YouKei 危险动作 (爬窗台外侧 / 啃电线 / 上灶台)",
+    "❌ 商业植入 (本季不接广告, 不演示产品)"
+  ],
+  "signature_moves": [
+    "蹲下来跟猫平视 (对话感)",
+    "伸手挡猫 (危险动作前)",
+    "抱猫起手式 (双手托腋下)",
+    "摸下巴 (YouKei 信任时)",
+    "假装生气脸 (嘴上说'别闹', 实际很宠)"
+  ],
+  "relationship_with_youkei": {
+    "style": "像室友, 像父子, 像恋人 (模糊)",
+    "talking_to_cat": "当作能听懂, 经常解释自己的行为",
+    "discipline": "不体罚, 只用 'no' + 移开注意力",
+    "treats": "小鱼干 / 冻干 (奖励用, 不滥用)",
+    "boundary": "YouKei 有自己空间, 不强迫互动"
+  },
+  "video_style": {
+    "main_view": "猫视角 (猫是主角, 人是配角)",
+    "camera_position": "固定机位 + 偶尔跟拍",
+    "music": "轻 BGM, 不喧宾夺主",
+    "subtitle_style": "简洁, 黑底白字, ≤12 字/行",
+    "transition": "硬切为主, 不用花哨转场",
+    "filter": "自然色调, 不用滤镜",
+    "duration_target": "30s-90s",
+    "thumbnail": "猫表情包 + 1 句标题"
+  },
+  "preferences_for_story": {
+    "favorite_scenes": [
+      "我跟猫共处 (静态, 温馨)",
+      "猫的本能反应 (搞笑, 真实)",
+      "我跟猫的小摩擦 (制造冲突)",
+      "我跟猫一起被打败 (向猫认输)"
+    ],
+    "disliked_scenes": [
+      "我刻意搞笑 (显得做作)",
+      "我说教式画外音 (像纪录片)",
+      "猫被惊吓/伤害 (绝对避免)"
+    ]
+  },
+  "background_for_season01": {
+    "context": "30 天前刚搬进 60 平新家",
+    "with_cat_duration": "跟 YouKei 相伴 3 个月",
+    "work_situation": "WFH 为主, 偶尔去咖啡馆",
+    "social": "朋友少而精, 不爱热闹"
+  },
+  "signature_first_line": "YouKei, 早上好。",
+  "signature_last_line_pattern": "(故事结尾留一句未完, 留给下一集)",
+  "writing_voice_rules": {
+    "narrator_consistency": "全程第一人称, 不切换",
+    "emotion_marker": "用 [动作] + (表情) 标注情绪, 不用形容词",
+    "time_marker": "开头标时间 (20:00 / 凌晨 3 点)",
+    "sound_marker": "用拟声词 (喵 / 噗嗤 / 哗啦)"
+  }
 }
