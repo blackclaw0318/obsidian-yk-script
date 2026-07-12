@@ -5,10 +5,9 @@ test_characters.py — P1 角色卡 JSON schema 校验
 策略: 简单 dict 校验 (P5 types.py 才上 Pydantic, P1 只验 JSON 合法 + 必填字段)
 """
 from __future__ import annotations
+
 import json
 from pathlib import Path
-
-import pytest
 
 CHARACTERS_DIR = Path("data/characters")
 

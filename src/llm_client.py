@@ -114,6 +114,7 @@ class LLMClient:
         }
 
         import time as _time
+
         start_ms = int(_time.time() * 1000)
 
         try:
@@ -151,7 +152,8 @@ class LLMClient:
         usage = data.get("usage", {})
 
         # v0.40 fix: 0 字符必须硬校验抛错
-        if not text or len(text.strip()) < 10:
+        # 阈值: 0 字符 = 空响应 → 抛错; 任意非空白字符 = 正常
+        if not text or not text.strip():
             raise ZeroLengthResponseError(
                 f"LLM 返回 {len(text)} 字符 (停止原因: {stop_reason})",
                 status_code=resp.status_code,

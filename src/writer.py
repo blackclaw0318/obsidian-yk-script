@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 import logging
-import random
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -219,7 +218,7 @@ class Writer:
                 output_tokens=response.output_tokens,
                 stop_reason=response.stop_reason,
             )
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.warning(f"候选 #{index} 失败: {e}")
             return CandidateResult(
                 index=index,
@@ -251,7 +250,7 @@ class Writer:
 
         try:
             return make_episode_script_from_json(data)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise LLMError(f"EpisodeScript schema 校验失败: {e}", response_body=text[:500]) from e
 
     def _load_season(self, season_id: int) -> dict[str, Any]:

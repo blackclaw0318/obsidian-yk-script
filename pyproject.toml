@@ -58,10 +58,16 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
-ignore = ["E501"]  # line length handled by formatter
+# E501: line length handled by formatter
+# UP042: Pydantic v2 BaseModel 不支持 StrEnum, 保持 (str, Enum) 写法
+ignore = ["E501", "UP042"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["B011"]  # asserts OK in tests
+"tests/**/*.py" = [
+    "B011",  # asserts OK in tests
+    "N802",  # test_EP12_* 保留大写, 表达"测的是 EP12 特性"
+    "RUF043",  # 测试字符串中允许 EP12 字面量
+]
 "scripts/**/*.py" = ["E402"]  # late imports OK in scripts
 
 [tool.mypy]

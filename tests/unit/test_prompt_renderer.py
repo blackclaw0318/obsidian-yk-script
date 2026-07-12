@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from jinja2 import StrictUndefined
+from jinja2 import UndefinedError
 
 from src.prompt_renderer import (
     _compile_template,
@@ -59,8 +59,12 @@ class TestRenderString:
         assert result == "Hello World!"
 
     def test_strict_undefined_missing_var(self):
-        """StrictUndefined: 变量缺失报错 (不静默空字符串)"""
-        with pytest.raises(StrictUndefined):
+        """StrictUndefined: 变量缺失报错 (不静默空字符串)
+
+        StrictUndefined 类本身不是 BaseException 子类 (是 jinja2.Undefined 的子类),
+        Jinja2 在 render 时会抛 UndefinedError。 所以测试预期 UndefinedError。
+        """
+        with pytest.raises(UndefinedError):
             render_string("Hello {{ name }}!", {})
 
     def test_jinja_control_flow(self):
@@ -76,13 +80,20 @@ class TestRenderString:
 
 class TestRenderPromptTemplate:
     def test_writer_system_prompt_with_characters(self):
-        """system_prompt 用 Jinja 渲染角色红线"""
+        """system_prompt 用 Jinja 渲染角色红线 + 公式
+
+        writer.yaml 的 system_prompt 同时依赖 角色卡 + episode_spec (注入本集信息),
+        所以测试需要补传 season_context + episode_spec。
+        """
         with open("data/characters/protagonist.json") as f:
             protagonist = json.load(f)
         with open("data/characters/youkei.json") as f:
             youkei = json.load(f)
         with open("data/characters/apartment.json") as f:
             apartment = json.load(f)
+        with open("data/seasons/season-01.json") as f:
+            season = json.load(f)
+        ep_data = season["episodes"][0]  # EP01
 
         result = render_prompt_template(
             "writer.yaml",
@@ -90,6 +101,9 @@ class TestRenderPromptTemplate:
                 "character_protagonist": protagonist,
                 "character_youkei": youkei,
                 "character_apartment": apartment,
+                "episode_spec": ep_data,
+                "season_context": {"season_id": 1},
+                "references_excerpt": "",
             },
             field="system_prompt",
         )
@@ -124,6 +138,9 @@ class TestRenderPromptTemplate:
             y = json.load(f)
         with open("data/characters/apartment.json") as f:
             a = json.load(f)
+        with open("data/seasons/season-01.json") as f:
+            season = json.load(f)
+        ep_data = season["episodes"][0]
 
         # writer.yaml 默认是 system_prompt
         result = render_prompt_template(
@@ -132,6 +149,9 @@ class TestRenderPromptTemplate:
                 "character_protagonist": p,
                 "character_youkei": y,
                 "character_apartment": a,
+                "episode_spec": ep_data,
+                "season_context": {"season_id": 1},
+                "references_excerpt": "",
             },
         )
         assert "3 秒钩子定律" in result

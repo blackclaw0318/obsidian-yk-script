@@ -16,9 +16,9 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from src.llm_client import LLMClient, LLMResponse
 from src.prompt_renderer import render_prompt_template
@@ -26,7 +26,6 @@ from src.types import (
     CriticVerdict,
     EpisodeScript,
     LLMError,
-    PerspectiveScore,
     Verdict,
 )
 
@@ -53,7 +52,7 @@ class Critic:
     """Layer 2 Critic (评审团)"""
 
     # 5 视角权重 (与 critic_rubric.yaml aggregation 一致)
-    WEIGHTS: dict[str, int] = {
+    WEIGHTS: ClassVar[dict[str, int]] = {
         "humor": 15,
         "cuteness": 15,
         "continuity": 10,
@@ -61,7 +60,7 @@ class Critic:
         "red_line": 5,
     }
 
-    PASS_THRESHOLD = 38   # >=38 PASS
+    PASS_THRESHOLD = 38  # >=38 PASS
     EXCELLENT_THRESHOLD = 45  # >=45 EXCELLENT
 
     def __init__(
@@ -111,7 +110,7 @@ class Critic:
                 input_tokens=response.input_tokens,
                 output_tokens=response.output_tokens,
             )
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.error(f"Critic EP{script.ep} 评审失败: {e}")
             return CriticResult(
                 script=script,
@@ -232,12 +231,13 @@ total_score = humor*3 + cuteness*3 + continuity*2 + rhythm*1 + red_line*1
 
         try:
             return CriticVerdict.model_validate(data)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             raise LLMError(f"CriticVerdict schema 校验失败: {e}", response_body=text[:500]) from e
 
     def _load_rubric(self) -> dict[str, Any]:
         """加载 critic_rubric.yaml"""
         from src.prompt_renderer import _load_template_file
+
         return _load_template_file("critic_rubric.yaml")
 
     def _load_characters(self) -> dict[str, Any]:
@@ -253,4 +253,5 @@ total_score = humor*3 + cuteness*3 + continuity*2 + rhythm*1 + red_line*1
 def make_default_critic() -> Critic:
     """工厂: 从环境变量构造默认 Critic"""
     from src.llm_client import make_default_client
+
     return Critic(make_default_client())

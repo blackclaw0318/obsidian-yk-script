@@ -11,9 +11,6 @@ test_llm_client.py — minimax Anthropic-compatible 客户端测试
 
 from __future__ import annotations
 
-import json
-import os
-
 import pytest
 import requests_mock
 

@@ -20,6 +20,7 @@ from src.types import (
     HookSpec,
     HookType,
     Intensity,
+    LLMError,
     PerspectiveScore,
     SatisfactionType,
     SelfCheck,
@@ -28,7 +29,6 @@ from src.types import (
     Verdict,
     Violation,
     ZeroLengthResponseError,
-    LLMError,
 )
 
 
@@ -42,7 +42,7 @@ def make_shot(
 ) -> Shot:
     return Shot(
         shot_no=shot_no,
-        time_range=f"{sum(range(shot_no))}-{sum(range(shot_no+1))}s",
+        time_range=f"{sum(range(shot_no))}-{sum(range(shot_no + 1))}s",
         scene="客厅",
         camera="固定机位",
         action="主人搬箱子,猫钻入",
@@ -62,8 +62,15 @@ def make_episode(
     hook_type: HookType | None = HookType.SUSPENSE,
     n_peaks: int = 1,
     title: str = "📦 搬家日",
+    pass_duration_target: bool = True,
 ) -> EpisodeScript:
-    """构造合法的 EpisodeScript"""
+    """构造合法的 EpisodeScript
+
+    Args:
+        pass_duration_target: 是否显式传 duration_target_s。
+            True (默认) → 传 shots 之和, 用于验证 model_validator 一致性检查。
+            False → 不传, 让 model_validator 自动计算 + 触发 "总时长" 越界错误 (用于 _too_short/_too_long 测试)。
+    """
     total_dur = shot_duration * n_shots
     shots = [
         make_shot(
@@ -73,24 +80,28 @@ def make_episode(
         )
         for i in range(n_shots)
     ]
-    return EpisodeScript(
-        ep=ep,
-        title=title,
-        logline="搬家日, 60 平里全是纸箱, 猫钻进最大纸箱",
-        duration_target_s=total_dur,
-        shots=shots,
-        hook=HookSpec(type=hook_type, subtype="来者悬念", text="客厅尽头那个最大的纸箱, 突然动了一下"),
-        satisfaction_types=[SatisfactionType.EMOTION],
-        next_episode_seed="EP02 第一夜, YouKei 不敢上床",
-        rhythm_notes="前 5s 必现冲突",
-        self_check=SelfCheck(
+    kwargs: dict = {
+        "ep": ep,
+        "title": title,
+        "logline": "搬家日, 60 平里全是纸箱, 猫钻进最大纸箱",
+        "shots": shots,
+        "hook": HookSpec(
+            type=hook_type, subtype="来者悬念", text="客厅尽头那个最大的纸箱, 突然动了一下"
+        ),
+        "satisfaction_types": [SatisfactionType.EMOTION],
+        "next_episode_seed": "EP02 第一夜, YouKei 不敢上床",
+        "rhythm_notes": "前 5s 必现冲突",
+        "self_check": SelfCheck(
             shot_count_ok=True,
             duration_in_range=True,
             emotion_peaks_count=n_peaks,
             hook_present=(hook_type is not None),
             forbidden_words_check=True,
         ),
-    )
+    }
+    if pass_duration_target:
+        kwargs["duration_target_s"] = total_dur
+    return EpisodeScript(**kwargs)
 
 
 def make_critic_verdict(
@@ -140,13 +151,26 @@ class TestShot:
     def test_shot_extra_field_forbidden(self):
         with pytest.raises(ValidationError):
             Shot(
-                shot_no=1, time_range="0-3s", scene="x", camera="x",
-                action="x", subtitle="x", duration_s=3,
+                shot_no=1,
+                time_range="0-3s",
+                scene="x",
+                camera="x",
+                action="x",
+                subtitle="x",
+                duration_s=3,
                 unknown_field="bad",  # type: ignore[call-arg]
             )
 
     def test_shot_type_enum(self):
-        for st in ("establishing", "dialogue", "reaction", "insert", "transition", "finale", "other"):
+        for st in (
+            "establishing",
+            "dialogue",
+            "reaction",
+            "insert",
+            "transition",
+            "finale",
+            "other",
+        ):
             s = make_shot(shot_type=st)
             assert s.shot_type == st
 
@@ -175,24 +199,27 @@ class TestEpisodeScript:
 
     def test_total_duration_too_short(self):
         with pytest.raises(ValidationError, match="总时长"):
-            make_episode(n_shots=3, shot_duration=5)  # 15s 总时长
+            make_episode(n_shots=3, shot_duration=5, pass_duration_target=False)  # 15s < 30s
 
     def test_total_duration_too_long(self):
         with pytest.raises(ValidationError, match="总时长"):
-            make_episode(n_shots=8, shot_duration=15)  # 120s 总时长
+            make_episode(n_shots=8, shot_duration=15, pass_duration_target=False)  # 120s > 90s
 
     def test_emotion_peaks_mismatch(self):
         """emotion_peak 实际数 ≠ self_check.emotion_peaks_count → 异常"""
-        # 构造不一致的场景
+        # 构造不一致的场景: 5 个 shot, 总时长 40s 合法,
+        # 但 self_check.emotion_peaks_count=3 而实际只 1 个波峰
         ep_dict = {
-            "ep": 1, "title": "test", "logline": "test",
+            "ep": 1,
+            "title": "test",
+            "logline": "test",
             "duration_target_s": 40,
             "shots": [
-                make_shot(shot_no=1, emotion_peak=True).model_dump(),
-                make_shot(shot_no=2, emotion_peak=False).model_dump(),
-                make_shot(shot_no=3, emotion_peak=False).model_dump(),
-                make_shot(shot_no=4, emotion_peak=False).model_dump(),
-                make_shot(shot_no=5, emotion_peak=False).model_dump(),
+                make_shot(shot_no=1, duration_s=8, emotion_peak=True).model_dump(),
+                make_shot(shot_no=2, duration_s=8, emotion_peak=False).model_dump(),
+                make_shot(shot_no=3, duration_s=8, emotion_peak=False).model_dump(),
+                make_shot(shot_no=4, duration_s=8, emotion_peak=False).model_dump(),
+                make_shot(shot_no=5, duration_s=8, emotion_peak=False).model_dump(),
             ],
             "hook": {"type": "悬念钩", "subtype": "x", "text": "x"},
             "satisfaction_types": ["情感爆发"],
@@ -230,8 +257,11 @@ class TestEpisodeScript:
         assert ep.total_duration_s == 72
 
     def test_logline_max_length(self):
+        # model_copy(update=...) 不重校验, 必须走 model_validate 触发 Field
         with pytest.raises(ValidationError):
-            make_episode().model_copy(update={"logline": "x" * 100})
+            EpisodeScript.model_validate(
+                make_episode().model_dump() | {"logline": "x" * 100},
+            )
 
 
 # ===== Test: CriticVerdict =====
@@ -244,16 +274,30 @@ class TestCriticVerdict:
         assert cv.verdict == Verdict.PASS
 
     def test_excellent_thresholds(self):
-        cv = make_critic_verdict(scores={
-            "humor": 5, "cuteness": 5, "continuity": 5, "rhythm": 5, "red_line": 5,
-        }, verdict=Verdict.EXCELLENT)
+        cv = make_critic_verdict(
+            scores={
+                "humor": 5,
+                "cuteness": 5,
+                "continuity": 5,
+                "rhythm": 5,
+                "red_line": 5,
+            },
+            verdict=Verdict.EXCELLENT,
+        )
         assert cv.total_score == 50
         assert cv.verdict == Verdict.EXCELLENT
 
     def test_fail_thresholds(self):
-        cv = make_critic_verdict(scores={
-            "humor": 2, "cuteness": 2, "continuity": 2, "rhythm": 3, "red_line": 5,
-        }, verdict=Verdict.FAIL)
+        cv = make_critic_verdict(
+            scores={
+                "humor": 2,
+                "cuteness": 2,
+                "continuity": 2,
+                "rhythm": 3,
+                "red_line": 5,
+            },
+            verdict=Verdict.FAIL,
+        )
         # 2*3 + 2*3 + 2*2 + 3*1 + 5*1 = 6+6+4+3+5 = 24
         assert cv.total_score == 24
         assert cv.verdict == Verdict.FAIL
@@ -315,20 +359,31 @@ class TestCriticVerdict:
 class TestHardCheckResult:
     def test_pass_no_violations(self):
         r = HardCheckResult(
-            verdict="PASS", violations=[], warnings=[],
-            passed_constraints=19, total_constraints=19, should_publish=True,
+            verdict="PASS",
+            violations=[],
+            warnings=[],
+            passed_constraints=19,
+            total_constraints=19,
+            should_publish=True,
         )
         assert r.should_publish is True
 
     def test_violation_sets_should_publish_false(self):
         r = HardCheckResult(
             verdict="FAIL",
-            violations=[Violation(
-                constraint_id="no_real_face", severity="HARD_FAIL",
-                shot_no=3, evidence="x", fix_suggestion="y",
-            )],
+            violations=[
+                Violation(
+                    constraint_id="no_real_face",
+                    severity="HARD_FAIL",
+                    shot_no=3,
+                    evidence="x",
+                    fix_suggestion="y",
+                )
+            ],
             warnings=[],
-            passed_constraints=18, total_constraints=19, should_publish=False,
+            passed_constraints=18,
+            total_constraints=19,
+            should_publish=False,
         )
         assert r.should_publish is False
 
@@ -336,12 +391,18 @@ class TestHardCheckResult:
         with pytest.raises(ValidationError, match="should_publish"):
             HardCheckResult(
                 verdict="PASS",
-                violations=[Violation(
-                    constraint_id="x", severity="FAIL",
-                    shot_no=None, evidence="x", fix_suggestion="x",
-                )],
+                violations=[
+                    Violation(
+                        constraint_id="x",
+                        severity="FAIL",
+                        shot_no=None,
+                        evidence="x",
+                        fix_suggestion="x",
+                    )
+                ],
                 warnings=[],
-                passed_constraints=18, total_constraints=19,
+                passed_constraints=18,
+                total_constraints=19,
                 should_publish=True,  # 错误: 有违规就不应 publish
             )
 
@@ -350,11 +411,15 @@ class TestHardCheckResult:
 class TestEpisodeSpec:
     def test_from_season_json(self):
         data = {
-            "ep": 1, "title": "📦 搬家日", "stage": "起势段",
-            "stage_position_pct": 8, "scene": "客厅纸箱堆",
+            "ep": 1,
+            "title": "📦 搬家日",
+            "stage": "起势段",
+            "stage_position_pct": 8,
+            "scene": "客厅纸箱堆",
             "core_conflict": "YouKei 钻进最大箱子不出来",
             "logline": "搬家日, 60 平里全是纸箱",
-            "hook_type": "悬念钩", "hook_subtype": "来者悬念",
+            "hook_type": "悬念钩",
+            "hook_subtype": "来者悬念",
             "hook_text_template": "客厅尽头那个最大的纸箱, 突然动了一下",
             "satisfaction_types": ["情感爆发"],
             "satisfaction_intensity": "★★★",
@@ -371,24 +436,38 @@ class TestEpisodeSpec:
 
     def test_ignores_unknown_fields(self):
         """EpisodeSpec 是 extra='ignore' (season JSON 可能含未建模字段)"""
-        spec = EpisodeSpec.model_validate({
-            "ep": 1, "title": "x", "stage": "起势段", "stage_position_pct": 0,
-            "scene": "x", "core_conflict": "x", "logline": "x",
-            "future_field": "future_value",  # 未知字段
-        })
+        spec = EpisodeSpec.model_validate(
+            {
+                "ep": 1,
+                "title": "x",
+                "stage": "起势段",
+                "stage_position_pct": 0,
+                "scene": "x",
+                "core_conflict": "x",
+                "logline": "x",
+                "future_field": "future_value",  # 未知字段
+            }
+        )
         assert spec.ep == 1
 
     def test_hook_type_null_allowed(self):
         """EP12 hook_type=null 允许"""
-        spec = EpisodeSpec.model_validate({
-            "ep": 12, "title": "🎄 季末冬至", "stage": "决战段",
-            "stage_position_pct": 100, "scene": "客厅+阳台",
-            "core_conflict": "(无冲突, 温馨收束)",
-            "logline": "冬至包饺子, YouKei 偷面团",
-            "hook_type": None, "hook_subtype": None, "hook_text_template": None,
-            "satisfaction_types": ["情感爆发"],
-            "satisfaction_intensity": "★★★★★",
-        })
+        spec = EpisodeSpec.model_validate(
+            {
+                "ep": 12,
+                "title": "🎄 季末冬至",
+                "stage": "决战段",
+                "stage_position_pct": 100,
+                "scene": "客厅+阳台",
+                "core_conflict": "(无冲突, 温馨收束)",
+                "logline": "冬至包饺子, YouKei 偷面团",
+                "hook_type": None,
+                "hook_subtype": None,
+                "hook_text_template": None,
+                "satisfaction_types": ["情感爆发"],
+                "satisfaction_intensity": "★★★★★",
+            }
+        )
         assert spec.hook_type is None
 
 

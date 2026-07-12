@@ -14,7 +14,6 @@ test_prompts.py — P4 5 份 prompt 模板的单测门控
 """
 
 import json
-import re
 from pathlib import Path
 
 import pytest
@@ -124,7 +123,6 @@ class TestWriterPrompt:
         assert "character_protagonist.forbidden" in writer["system_prompt"]
         # 至少 1 条具体红线要在 writer.yaml 字面里出现 (作为示例)
         # 注意: forbidden array 在 protagonist.json 中是中文 array
-        any_forbidden_word = protagonist["forbidden"][0]  # 例: "❌ 露正脸..."
         assert any("正脸" in s or "上坤" in s or "forbidden" in s for s in [
             writer["system_prompt"][:500]  # 前 500 字含关键标记即可
         ])
@@ -450,7 +448,6 @@ class TestCrossTemplateConsistency:
 
     def test_satisfaction_intensity_in_critic(self, critic, satisfaction):
         """critic.cuteness 维度覆盖情感爆发/悬念揭秘"""
-        cs = next(p for p in critic["perspectives"] if p["id"] == "cuteness")
         # 萌点 = 情感爆发在猫视角的体现
         # satisfaction.json 里情感爆发最高 (0.60)
         assert satisfaction["satisfaction_types"]["情感爆发"]["config_weight"] == 0.60

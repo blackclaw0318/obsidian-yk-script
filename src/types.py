@@ -93,8 +93,13 @@ class Shot(BaseModel):
     duration_s: int = Field(ge=1, le=30, description="镜头时长(秒)")
     emotion_peak: bool = Field(default=False, description="是否情绪波峰")
     shot_type: Literal[
-        "establishing", "dialogue", "reaction", "insert",
-        "transition", "finale", "other",
+        "establishing",
+        "dialogue",
+        "reaction",
+        "insert",
+        "transition",
+        "finale",
+        "other",
     ] = Field(default="other", description="镜头类型")
 
 
@@ -128,7 +133,12 @@ class EpisodeScript(BaseModel):
     ep: int = Field(ge=1, le=12, description="集号")
     title: str = Field(description="集标题")
     logline: str = Field(max_length=50, description="一句话剧情 (≤30 字)")
-    duration_target_s: int = Field(ge=30, le=90, description="目标时长(秒)")
+    duration_target_s: int | None = Field(
+        default=None,
+        ge=30,
+        le=90,
+        description="目标时长(秒); None 时由 model_validator 从 shots 计算并填入",
+    )
     shots: list[Shot] = Field(min_length=3, max_length=8, description="3-8 个镜头")
     hook: HookSpec
     satisfaction_types: list[SatisfactionType] = Field(min_length=1, max_length=3)
@@ -138,12 +148,23 @@ class EpisodeScript(BaseModel):
 
     @model_validator(mode="after")
     def validate_total_duration(self) -> EpisodeScript:
-        """总时长 = shots.duration_s 之和, 应在 30-90s 范围内"""
+        """总时长 = shots.duration_s 之和, 应在 30-90s 范围内 (无 ±5s 容差)。
+
+        - 若调用方未传 duration_target_s (None), 则从 shots 自动计算并填入
+        - 若已传, 必须等于 shots 之和 (避免字段不一致)
+        - 错误消息固定包含 "总时长" 字样, 方便上层日志聚合
+        """
         total = sum(s.duration_s for s in self.shots)
-        if not 25 <= total <= 95:
+        if not 30 <= total <= 90:
             raise ValueError(
-                f"总时长 {total}s 超出 30-90s 范围 (允许 ±5s 容差)",
+                f"总时长 {total}s 不在 30-90s 范围内 (3-8 镜头 × 1-30 秒)",  # noqa: RUF001
             )
+        if self.duration_target_s is not None and self.duration_target_s != total:
+            raise ValueError(
+                f"duration_target_s={self.duration_target_s} 与 shots 总时长 {total}s 不一致",
+            )
+        # 自动填字段, 保持向后兼容 (旧代码 .duration_target_s 仍可读)
+        self.duration_target_s = total
         return self
 
     @model_validator(mode="after")
@@ -211,8 +232,11 @@ class CriticVerdict(BaseModel):
     def validate_score_aggregation(self) -> CriticVerdict:
         """总分必须符合聚合公式: sum(score * weight / 5)"""
         weights = {
-            "humor": 15, "cuteness": 15, "continuity": 10,
-            "rhythm": 5, "red_line": 5,
+            "humor": 15,
+            "cuteness": 15,
+            "continuity": 10,
+            "rhythm": 5,
+            "red_line": 5,
         }
         expected = sum(p.score * weights[p.id] // 5 for p in self.perspectives)
         if expected != self.total_score:
@@ -238,8 +262,7 @@ class CriticVerdict(BaseModel):
         expected = self.verdict == Verdict.FAIL
         if self.should_rewrite != expected:
             raise ValueError(
-                f"should_rewrite={self.should_rewrite} 应等于 "
-                f"verdict=FAIL? {expected}",
+                f"should_rewrite={self.should_rewrite} 应等于 verdict=FAIL? {expected}",
             )
         return self
 
@@ -275,8 +298,7 @@ class HardCheckResult(BaseModel):
         expected = len(self.violations) == 0
         if self.should_publish != expected:
             raise ValueError(
-                f"should_publish={self.should_publish} 应等于 "
-                f"无违规? {expected}",
+                f"should_publish={self.should_publish} 应等于 无违规? {expected}",
             )
         return self
 
