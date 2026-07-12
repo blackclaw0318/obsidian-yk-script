@@ -1,0 +1,67 @@
+# =============================================================
+# yk-daily.service - 《上坤×YouKei》单元剧短视频脚本生成 (oneshot)
+# =============================================================
+# v0.3 P10 落地: 每天 06:00 Asia/Shanghai 自动跑
+# 触发方式: systemd timer (yk-daily.timer)
+# 工作目录: /root/.openclaw/workspace/projects/obsidian-yk-script
+# Python:   .venv/bin/python (v3.12+, 安装时 uv sync 或 pip install -e .[dev])
+# 日志:     /root/.openclaw/workspace/projects/obsidian-yk-script/logs/yk-daily.log
+#           (logrotate 每日切割, 保留 30 天)
+#
+# 安装:   sudo bash scripts/install-systemd.sh
+# 卸载:   sudo bash scripts/uninstall-systemd.sh
+# 状态:   systemctl status yk-daily.timer
+# 日志:   journalctl -u yk-daily.service -n 50
+#         tail -f logs/yk-daily.log
+# 手动:   sudo systemctl start yk-daily.service
+#         sudo systemctl start yk-daily.service -- --dry-run --force-episode 1
+# =============================================================
+
+[Unit]
+Description=Obsidian YouKei Script Daily Generator (06:00 Asia/Shanghai)
+Documentation=https://github.com/blackclaw0318/obsidian-yk-script
+# 必须 network 在线 (要调 minimax API + GitHub Contents API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/root/.openclaw/workspace/projects/obsidian-yk-script
+
+# v0.3 P10: 跑 src.daily 主入口 (默认行为: Writer → Critic → HardCheck → Memory → Render → Publish)
+# venv python 走绝对路径 (systemd 不读 ~/.bashrc / PATH)
+ExecStart=/root/.openclaw/workspace/projects/obsidian-yk-script/.venv/bin/python -m src.daily
+
+# 环境变量 (.env 由 EnvironmentFile 加载, 含 MINIMAXI_API_KEY / GITHUB_BACKUP_TOKEN 等)
+EnvironmentFile=/root/.openclaw/workspace/projects/obsidian-yk-script/.env
+
+# v0.3 P10: 显式 TZ (host TZ 漂移会导致 daily run 时间错乱)
+Environment=TZ=Asia/Shanghai
+
+# 外层兜底超时: 略大于应用内置硬时限 (主流程 ~60-120s + LLM 调用 ~180s),
+# 让应用自己的超时先优雅硬停, systemd 只做最后兜底
+TimeoutStartSec=600
+
+# 输出: stdout + stderr 都重定向到 logs/yk-daily.log
+# 用 append: 而不是 file: — logrotate 切割后下个 run 会自动开新 inode (oneshot 每次新进程)
+StandardOutput=append:/root/.openclaw/workspace/projects/obsidian-yk-script/logs/yk-daily.log
+StandardError=append:/root/.openclaw/workspace/projects/obsidian-yk-script/logs/yk-daily.log
+
+# 不需要 TTY (daemon 模式)
+StandardInput=null
+TTYPath=/dev/null
+
+# 文件描述符
+LimitNOFILE=65536
+
+# 资源限制 (主流程 + LLM 调用 + 渲染, 上限 1GB)
+MemoryMax=1G
+
+# 安全 (root 运行但 minimal 权限)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,33 @@
+# =============================================================
+# yk-daily.timer - 《上坤×YouKei》每日 06:00 Asia/Shanghai 触发
+# =============================================================
+# 触发:   yk-daily.service (oneshot)
+# 节奏:   每天 06:00 (Asia/Shanghai)
+# 容错:   Persistent=true (错过自动补, 比如机器 6 点关机, 7 点起来补 6 点那次)
+# 单次:   1 章 ≈ 3500 字 + 1 张封面 + 1 次 GitHub 备份
+#
+# 安装:   sudo bash scripts/install-systemd.sh
+# 查时间: systemctl list-timers yk-daily.timer
+# 下次:   systemctl status yk-daily.timer (Next elapse)
+# 手动跑: sudo systemctl start yk-daily.service
+# 暂停:   sudo systemctl stop yk-daily.timer
+# =============================================================
+
+[Unit]
+Description=Obsidian YouKei Script Timer (daily 06:00 Asia/Shanghai)
+Documentation=https://github.com/blackclaw0318/obsidian-yk-script
+
+[Timer]
+# 每天 06:00 (本地时间 Asia/Shanghai, 依赖 host TZ)
+# 部署机器 timedatectl 必须设 Asia/Shanghai (本仓库 host 已配置)
+# 老板改作息: 改这 1 行即可, OnCalendar 用 systemd 日历表达式
+OnCalendar=*-*-* 06:00:00
+
+# 持久化 (机器宕机补跑, 启动时检查错过的时间点)
+Persistent=true
+
+# 单位: yk-daily.service
+Unit=yk-daily.service
+
+[Install]
+WantedBy=timers.target

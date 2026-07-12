@@ -1,0 +1,21 @@
+# ============================================================
+# logrotate config: /root/.openclaw/workspace/projects/obsidian-yk-script/logs/yk-daily.log
+# ============================================================
+# 由 scripts/install-logrotate.sh 安装
+# 验证: logrotate -d /etc/logrotate.d/yk-script
+# 强制跑: logrotate -f /etc/logrotate.d/yk-script
+# ============================================================
+
+/root/.openclaw/workspace/projects/obsidian-yk-script/logs/yk-daily.log {
+    daily                       # 每天转一次
+    rotate 30                   # 保留 30 天
+    missingok                   # 日志不存在不报错
+    notifempty                  # 空文件不转
+    compress                    # 旧日志 gzip 压缩
+    delaycompress               # 压缩上一次 (例: yk-daily.log.1.gz, 不压缩 .1)
+    copytruncate                # systemd 用 append: 持续打开 inode, 用 copy + truncate 不重开
+    dateext                     # 后缀加日期 (例: yk-daily.log-20260712.gz)
+    dateformat -%Y%m%d
+    create 0644 root root       # 新建文件权限
+    sharedscripts               # 多个匹配共享 postrotate (本配置 1 个匹配, 防冗余)
+}

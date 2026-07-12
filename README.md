@@ -130,8 +130,8 @@ obsidian-yk-script/
 │   └── verify-backup.py                # 🆕
 │
 ├── systemd/
-│   ├── yk-script.service
-│   └── yk-script.timer                 # 06:00 daily
+│   ├── yk-daily.service                # ⏰ 每日 06:00 Asia/Shanghai
+│   └── yk-daily.timer
 │
 └── tests/
     ├── unit/                           # 单元测试
@@ -182,13 +182,15 @@ python -m scripts.pull_outline
 # 5. 验证备份 (调试)
 python -m scripts.verify_backup
 
-# 6. systemd timer 启动 (本机)
-sudo cp systemd/yk-script.{service,timer} /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now yk-script.timer
+# 6. systemd timer 安装 (一键)
+sudo bash scripts/install-systemd.sh
 
-# 7. 查看日志
-tail -f logs/yk-script.log
+# 7. logrotate 配置 (推荐)
+sudo bash scripts/install-logrotate.sh
+
+# 8. 查看日志
+tail -f logs/yk-daily.log
+journalctl -u yk-daily.service -n 50
 ```
 
 ---
@@ -210,14 +212,17 @@ tail -f logs/yk-script.log
 - [x] **v0.1 方案稿** (2026-07-05) — commit `d189407`
 - [x] **v0.2 调研 + 方案** (2026-07-11) — commit `a7c0419`
 - [x] **v0.3 三增项落地** (2026-07-11 21:43) — commit `1265001`
-- [ ] **P0-P15 实施** (5.6d) — 当前 ⏳ feat/v0.3-implementation 分支
-  - [x] P0 仓库骨架 ✅ (2026-07-11 21:58)
-  - [ ] P1 角色卡
-  - [ ] P4 prompts
-  - [ ] P5-P8 Agent 代码 + 主入口
-  - [ ] P9-P11 systemd + 集成 + scripts
-  - [ ] P12-P14 outline_fetcher / github_backup / wechat_notifier
-  - [ ] P15 RUNBOOK + dry-run EP01
+- [x] **P0-P9 实施** ✅ (2026-07-12) — 9 commit on feat/v0.3-implementation
+  - [x] P0 仓库骨架 ✅
+  - [x] P1 角色卡 ✅
+  - [x] P4 5 份 prompt 模板 ✅
+  - [x] P5 Layer 1 Writer + Layer 2 Critic 数据层 ✅
+  - [x] P6 测试修复 (152/152) ✅
+  - [x] P7 Layer 3 Hard Check (19 红线 + 5 结构) ✅
+  - [x] P8 Memory Manager (跨集状态机 + 钩子回收) ✅
+  - [x] P9 daily orchestrator + Markdown renderer (231/231) ✅
+  - [x] **P10 systemd + logrotate** ✅ (本 commit)
+- [ ] **P11-P15** (2.5d) — outline_fetcher / publish / backup / 微信 / E2E
 - [ ] **v1.0 上线** — 每天 06:00 自动产出 + 老板微信收到推送
 
 ---
