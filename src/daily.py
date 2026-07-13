@@ -28,28 +28,35 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv  # P11+P13 fix: 手动跑 cli() 自动读 .env
+
+from src.backup import Backup, BackupError, EpisodeMeta  # P13
 from src.critic import make_default_critic
 from src.hard_check import HardCheckResult, make_default_checker
 from src.markdown_renderer import render_episode, render_preview
 from src.memory_manager import MemoryManager
-from src.types import EpisodeScript, HookSpec, HookType, SatisfactionType, SelfCheck, Shot
-from src.writer import WriterAllFailedError, make_default_writer
 
 # v0.3 增项
 from src.outline_fetcher import fetch_season_with_fallback  # P11
 from src.publisher import (  # P12
     EpisodePayload,
-    Publisher,
-    make_default_publisher,
     get_post_url,
+    make_default_publisher,
 )
-from src.backup import Backup, BackupError, EpisodeMeta  # P13
+from src.types import EpisodeScript, HookSpec, HookType, SatisfactionType, SelfCheck, Shot
 from src.wechat_notifier import (  # P14
     WechatNotifierConfig,
-    notify_success as wechat_notify_success,
-    notify_failure as wechat_notify_failure,
+)
+from src.wechat_notifier import (
     notify_backup_warning as wechat_notify_backup_warning,
 )
+from src.wechat_notifier import (
+    notify_failure as wechat_notify_failure,
+)
+from src.wechat_notifier import (
+    notify_success as wechat_notify_success,
+)
+from src.writer import WriterAllFailedError, make_default_writer
 
 logger = logging.getLogger("yk-script.daily")
 
@@ -465,7 +472,7 @@ def main(
         else:
             # 推送成功 + 备份失败 (publish_result 是 None + post_url 存在但 backup fail)
             logger.warning("[daily] 推送成功但备份失败")
-            # post_url 可能为 "" 或 "" 如本地 publish 临时返回；wechat 发警告
+            # post_url 可能为 "" 或 "" 如本地 publish 临时返回; wechat 发警告
             wechat_cfg = WechatNotifierConfig.from_env()
             # 发送 backup warning (post_url 可能不是正式 URL)
             wechat_notify_backup_warning(
@@ -604,6 +611,11 @@ def _alert_failure(episode_label: str, errors: list[str]) -> None:
 
 # ===== CLI 入口 =====
 def cli() -> int:
+    # P11+P13 fix: 手动跑时没 source .env, 这里自动 load (override=False 不影响 systemd env)
+    # 显式 dotenv_path=".env" 避免 pytest 调试模式下 find_dotenv 误走 frame 路径
+    # 测试场景: tmp_path 没 .env, load_dotenv 静默 noop, 不会污染 monkeypatch.delenv 后的 env
+    load_dotenv(dotenv_path=".env", override=False)
+
     parser = argparse.ArgumentParser(description="yk-script daily orchestrator")
     parser.add_argument(
         "--dry-run",
