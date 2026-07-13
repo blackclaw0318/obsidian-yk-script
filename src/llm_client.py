@@ -170,15 +170,23 @@ class LLMClient:
         )
 
     def _extract_text(self, data: dict[str, Any]) -> str:
-        """从 Anthropic Messages 响应提取文本"""
+        """从 Anthropic Messages 响应提取文本
+
+        minimax M2.7 是思考模型, 返回 content 可能是双 block:
+        - {type: "thinking", thinking: "...", signature: "..."}  ← LLM 内部思考
+        - {type: "text", text: "..."}                            ← 实际输出
+
+        必须过滤掉 thinking block, 只取 text block (P9 fix: 之前返的是 thinking)
+        """
         content = data.get("content", [])
         if not content:
             return ""
-        # Anthropic Messages: content 是 list[{type: "text", text: "..."}]
+        # Anthropic Messages: content 是 list[{type, ...}]
+        # 只取 type=="text" 的 block (过滤掉 type=="thinking")
         texts = [
             block.get("text", "")
             for block in content
-            if isinstance(block, dict) and block.get("type") in ("text", None)
+            if isinstance(block, dict) and block.get("type") == "text"
         ]
         return "".join(texts).strip()
 

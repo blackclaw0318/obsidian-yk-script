@@ -25,7 +25,6 @@ import pytest
 import requests
 
 from src.outline_fetcher import (
-    CACHE_ROOT,
     OutlineFetcher,
     OutlineFetcherError,
     OutlineSource,

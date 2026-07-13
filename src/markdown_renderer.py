@@ -116,7 +116,7 @@ def render_episode(script: EpisodeScript) -> str:
     # ===== 爽点 + 类型 =====
     lines.append("## ✨ 爽点类型")
     lines.append("")
-    satisfaction_str = " · ".join(s.value for s in script.satisfaction_types)
+    satisfaction_str = " · ".join(s if isinstance(s, str) else s.value for s in script.satisfaction_types)
     lines.append(f"**{satisfaction_str}**")
     lines.append("")
     lines.append("---")

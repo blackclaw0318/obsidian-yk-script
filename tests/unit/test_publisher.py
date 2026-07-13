@@ -12,8 +12,6 @@ test_publisher.py — publisher 单元测试
 
 from __future__ import annotations
 
-import json
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest

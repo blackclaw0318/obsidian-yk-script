@@ -30,7 +30,6 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from pathlib import Path
 
 import requests
 
@@ -120,7 +119,7 @@ def _make_excerpt(md: str, max_len: int = 240) -> str:
             continue
         return line[:max_len]
     # 极端兜底: 返回全部文本前 max_len
-    return md[:max_len] 
+    return md[:max_len]
 
 
 # ============================================================

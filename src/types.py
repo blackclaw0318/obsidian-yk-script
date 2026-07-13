@@ -81,7 +81,7 @@ class CheckSeverity(str, Enum):
 class Shot(BaseModel):
     """单个镜头"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")  # P9 fix: LLM 额外字段不拒 (例 shot_dialogue_quote)
 
     shot_no: int = Field(ge=1, le=20, description="镜头序号")
     time_range: str = Field(description='时长区间, 例 "0-3s"')
@@ -92,21 +92,20 @@ class Shot(BaseModel):
     subtitle: str = Field(description="字幕 (≤12 字)")
     duration_s: int = Field(ge=1, le=30, description="镜头时长(秒)")
     emotion_peak: bool = Field(default=False, description="是否情绪波峰")
-    shot_type: Literal[
-        "establishing",
-        "dialogue",
-        "reaction",
-        "insert",
-        "transition",
-        "finale",
-        "other",
-    ] = Field(default="other", description="镜头类型")
+    shot_type: str = Field(
+        default="other",
+        description=(
+            "镜头类型 (机位 或 Save the Cat beats 名)"
+            " P9 fix: 改为 str, LLM 会创造 beats 名 (opening/catalyst/conflict_escalation/cute_moment/ending_hook 等), "
+            "Literal 枚举无法覆盖, hard_check 阶段再验证"
+        ),
+    )
 
 
 class HookSpec(BaseModel):
     """钩子规格"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")  # P9 fix: LLM 加 placement/next_seed_hint, 不拒
 
     type: HookType | None = Field(description="5 类钩子之一, EP12 可为 null")
     subtype: str | None = Field(description="子类")
@@ -116,7 +115,7 @@ class HookSpec(BaseModel):
 class SelfCheck(BaseModel):
     """Writer 自检 5 项"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")  # P9 fix: LLM 额外字段不拒 (例 human_red_line_check)
 
     shot_count_ok: bool
     duration_in_range: bool
@@ -128,7 +127,7 @@ class SelfCheck(BaseModel):
 class EpisodeScript(BaseModel):
     """Writer L1 输出: 一集完整剧本"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")  # P9 fix: LLM 额外字段不拒 (例 satisfaction_intensity, compliance_notes)
 
     ep: int = Field(ge=1, le=12, description="集号")
     title: str = Field(description="集标题")
@@ -141,7 +140,15 @@ class EpisodeScript(BaseModel):
     )
     shots: list[Shot] = Field(min_length=3, max_length=8, description="3-8 个镜头")
     hook: HookSpec
-    satisfaction_types: list[SatisfactionType] = Field(min_length=1, max_length=3)
+    satisfaction_types: list[str] = Field(
+        min_length=1,
+        max_length=3,
+        description=(
+            "爽点类型 (1-3 个)"
+            " P9 fix: 改为 list[str], LLM 会加 '冷幽默反转' '反差萌' 等不在 5 选枚举里的类型"
+            " 5 选是参考 (情感爆发/悬念揭秘/打脸复仇/逆袭翻盘/身份碾压), 不强制"
+        ),
+    )
     next_episode_seed: str | None = Field(description="留给下一集的钩子")
     rhythm_notes: str = Field(default="", description="节奏提示")
     self_check: SelfCheck
@@ -159,9 +166,10 @@ class EpisodeScript(BaseModel):
             raise ValueError(
                 f"总时长 {total}s 不在 30-90s 范围内 (3-8 镜头 × 1-30 秒)",  # noqa: RUF001
             )
-        if self.duration_target_s is not None and self.duration_target_s != total:
+        # P9 fix: ±2s 容差 — LLM 算 60s 但 shots 总和可能 57-63s, 容忍即可, 不应严卡
+        if self.duration_target_s is not None and abs(self.duration_target_s - total) > 2:
             raise ValueError(
-                f"duration_target_s={self.duration_target_s} 与 shots 总时长 {total}s 不一致",
+                f"duration_target_s={self.duration_target_s} 与 shots 总时长 {total}s 不一致 (容差 ±2s)",
             )
         # 自动填字段, 保持向后兼容 (旧代码 .duration_target_s 仍可读)
         self.duration_target_s = total
@@ -208,18 +216,21 @@ class EpisodeScript(BaseModel):
 class PerspectiveScore(BaseModel):
     """单个视角评分"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")  # P9 fix: LLM 会加额外字段, 不拒
 
     id: Literal["humor", "cuteness", "continuity", "rhythm", "red_line"]
     score: int = Field(ge=0, le=5, description="0-5 分")
-    reason: str = Field(max_length=100, description="评审理由")
-    improvement: str = Field(default="", max_length=50, description="改进建议")
+    reason: str = Field(
+        max_length=200,  # P9 fix: 100 太短, LLM 实际写 140+ 字符, 200 足够
+        description="评审理由",
+    )
+    improvement: str = Field(default="", max_length=100, description="改进建议")  # P9 fix: 50 太短
 
 
 class CriticVerdict(BaseModel):
     """Critic L2 输出: 评审结论"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")  # P9 fix: LLM 会加 feedback_extra/notes 等, 不拒
 
     episode_id: int = Field(ge=1, le=12)
     perspectives: list[PerspectiveScore] = Field(min_length=5, max_length=5)
@@ -230,7 +241,12 @@ class CriticVerdict(BaseModel):
 
     @model_validator(mode="after")
     def validate_score_aggregation(self) -> CriticVerdict:
-        """总分必须符合聚合公式: sum(score * weight / 5)"""
+        """总分必须符合聚合公式: sum(score * weight / 5)
+
+        P9 fix: LLM 评分总有偏差 (±3), 阈值严格会误伤:
+          - 偏差 ≤3 → 静默覆盖 total_score 为聚合值
+          - 偏差 >3  → 报 ValueError (说明 LLM 没理解公式, 严重异常)
+        """
         weights = {
             "humor": 15,
             "cuteness": 15,
@@ -239,31 +255,36 @@ class CriticVerdict(BaseModel):
             "red_line": 5,
         }
         expected = sum(p.score * weights[p.id] // 5 for p in self.perspectives)
-        if expected != self.total_score:
+        diff = abs(expected - self.total_score)
+        if diff > 3:
             raise ValueError(
-                f"total_score={self.total_score} 不等于聚合值 {expected}",
+                f"total_score={self.total_score} 偏离聚合值 {expected} 超过 ±3 (LLM 公式理解有严重问题)",
             )
+        # P9 fix: 偏差 ≤3 → 静默修正为聚合值, 下游 verdict_thresholds 跟它走
+        self.total_score = expected
         return self
 
     @model_validator(mode="after")
     def validate_verdict_thresholds(self) -> CriticVerdict:
-        """verdict 必须跟 total_score 一致"""
-        if self.total_score >= 45 and self.verdict != Verdict.EXCELLENT:
-            raise ValueError(f"total={self.total_score} 应 EXCELLENT, 实际 {self.verdict}")
-        if 38 <= self.total_score < 45 and self.verdict != Verdict.PASS:
-            raise ValueError(f"total={self.total_score} 应 PASS, 实际 {self.verdict}")
-        if self.total_score < 38 and self.verdict != Verdict.FAIL:
-            raise ValueError(f"total={self.total_score} 应 FAIL, 实际 {self.verdict}")
+        """verdict 必须跟 total_score 一致
+
+        P9 fix: LLM 经常弄错阈值 (例如 35 分给 PASS), 自动覆盖 verdict 为正确值
+        """
+        if self.total_score >= 45:
+            self.verdict = Verdict.EXCELLENT
+        elif self.total_score >= 38:
+            self.verdict = Verdict.PASS
+        else:
+            self.verdict = Verdict.FAIL
         return self
 
     @model_validator(mode="after")
     def validate_should_rewrite_consistency(self) -> CriticVerdict:
-        """should_rewrite = (verdict == FAIL)"""
-        expected = self.verdict == Verdict.FAIL
-        if self.should_rewrite != expected:
-            raise ValueError(
-                f"should_rewrite={self.should_rewrite} 应等于 verdict=FAIL? {expected}",
-            )
+        """should_rewrite = (verdict == FAIL)
+
+        P9 fix: 同 verdict_thresholds, 静默覆盖不一致值
+        """
+        self.should_rewrite = (self.verdict == Verdict.FAIL)
         return self
 
 

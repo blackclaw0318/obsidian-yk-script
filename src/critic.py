@@ -122,35 +122,41 @@ class Critic:
     def select_best(
         self,
         candidates: list[EpisodeScript],
-    ) -> tuple[EpisodeScript | None, dict[EpisodeScript, CriticVerdict]]:
+    ) -> tuple[EpisodeScript | None, dict[int, CriticVerdict]]:
         """从 N 个候选中选最优 (verdict 最高 → EXCELLENT 优先)
 
         Args:
             candidates: Writer 输出的候选列表
 
         Returns:
-            (best_script, verdict_map): best_script 可能为 None (评审全失败)
+            (best_script, verdict_map):
+              - best_script 可能为 None (评审全失败)
+              - verdict_map: key=ep 编号 (int), value=CriticVerdict
+                (P9 fix: EpisodeScript 不可哈希, 不用脚本当 key)
         """
-        verdict_map: dict[EpisodeScript, CriticVerdict] = {}
+        verdict_map: dict[int, tuple[EpisodeScript, CriticVerdict]] = {}
         for cand in candidates:
             result = self.critique_episode(cand)
             if result.verdict is not None:
-                verdict_map[cand] = result.verdict
+                # P9 fix: EpisodeScript 是 Pydantic BaseModel, 不可哈希, 用 ep 编号当 key
+                verdict_map[cand.ep] = (cand, result.verdict)
 
         if not verdict_map:
-            return None, verdict_map
+            return None, {}
 
         # 排序: total_score 降序, EXCELLENT 优先
-        def sort_key(item: tuple[EpisodeScript, CriticVerdict]) -> tuple[int, int]:
-            verdict = item[1]
+        def sort_key(item: tuple[int, tuple[EpisodeScript, CriticVerdict]]) -> tuple[int, int]:
+            _, (_, verdict) = item
             return (
                 -verdict.total_score,
                 -1 if verdict.verdict == Verdict.EXCELLENT else 0,
             )
 
         sorted_items = sorted(verdict_map.items(), key=sort_key)
-        best_script = sorted_items[0][0]
-        return best_script, verdict_map
+        best_script = sorted_items[0][1][0]  # P9 fix: tuple[int, (script, verdict)]
+        # P9 fix (Phase 2): EpisodeScript 不可哈希, 用 ep 当 key 而非对象
+        final_map: dict[int, CriticVerdict] = {ep: v for ep, (_, v) in verdict_map.items()}
+        return best_script, final_map
 
     # ===== 内部方法 =====
     def _build_system_prompt(

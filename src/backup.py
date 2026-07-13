@@ -95,7 +95,7 @@ class EpisodeMeta(BaseModel):
         word_count: int,
         post_url: str = "",
         **extra: Any,
-    ) -> "EpisodeMeta":
+    ) -> EpisodeMeta:
         return cls(
             season_id=season_id,
             episode_idx=episode_idx,

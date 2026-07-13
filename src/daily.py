@@ -516,7 +516,7 @@ def _run_writer(
         writer = make_default_writer()
         result = writer.generate_episode_candidates(ep, season_id)
         logger.info(
-            f"Writer: {len(result.successful)}/{result.n_candidates} 候选成功, "
+            f"Writer: {len(result.successful)}/{len(result.candidates)} 候选成功, "
             f"tokens={result.total_tokens}",
         )
         return [c.script for c in result.successful if c.script is not None]
@@ -546,12 +546,10 @@ def _run_critic(
         if best is None:
             logger.error("Critic 全部评审失败")
             return None
-        # 记录每集分数
+        # 记录每集分数 (verdicts: dict[int, CriticVerdict], key=ep 编号)
         score_log = ", ".join(
-            f"#{i + 1}={v.total_score}/50"
-            for i, (_, v) in enumerate(
-                sorted(verdicts.items(), key=lambda x: x[1].total_score, reverse=True),
-            )
+            f"#{ep}={v.total_score}/50"
+            for ep, v in sorted(verdicts.items(), key=lambda x: x[1].total_score, reverse=True)
         )
         logger.info(f"Critic: {len(verdicts)} 集评审完, scores: {score_log}")
         return best

@@ -11,8 +11,6 @@ test_hmac_client.py — hmac_client 单元测试
 
 from __future__ import annotations
 
-import json
-
 from src.hmac_client import (
     HmacClient,
     HmacConfig,

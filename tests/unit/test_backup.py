@@ -13,7 +13,6 @@ test_backup.py — backup 单元测试
 
 from __future__ import annotations
 
-import base64
 import json
 from unittest.mock import MagicMock, patch
 
@@ -279,9 +278,8 @@ class TestUpload:
         with patch.object(b, "_get_existing_sha", return_value=None), \
              patch.object(b, "_get_existing_content", return_value=None), \
              patch("src.backup.requests.put", return_value=resp), \
-             patch("src.backup.time.sleep"):
-            with pytest.raises(BackupError, match="重试 2 次后仍失败"):
-                b.upload("# md", _make_meta())
+             patch("src.backup.time.sleep"), pytest.raises(BackupError, match="重试 2 次后仍失败"):
+            b.upload("# md", _make_meta())
 
     def test_4xx_no_retry(self):
         b = _make_backup(max_retries=3)
@@ -289,9 +287,8 @@ class TestUpload:
         with patch.object(b, "_get_existing_sha", return_value=None), \
              patch.object(b, "_get_existing_content", return_value=None), \
              patch("src.backup.requests.put", return_value=resp) as m, \
-             patch("src.backup.time.sleep"):
-            with pytest.raises(BackupError, match="4xx"):
-                b.upload("# md", _make_meta())
+             patch("src.backup.time.sleep"), pytest.raises(BackupError, match="4xx"):
+            b.upload("# md", _make_meta())
         # 第 1 个文件 PUT 失败 → 不重试 (4xx 立即抛)
         assert m.call_count == 1
 

@@ -63,6 +63,7 @@ def make_episode(
     n_peaks: int = 1,
     title: str = "📦 搬家日",
     pass_duration_target: bool = True,
+    duration_target_s_override: int | None = None,
 ) -> EpisodeScript:
     """构造合法的 EpisodeScript
 
@@ -70,6 +71,9 @@ def make_episode(
         pass_duration_target: 是否显式传 duration_target_s。
             True (默认) → 传 shots 之和, 用于验证 model_validator 一致性检查。
             False → 不传, 让 model_validator 自动计算 + 触发 "总时长" 越界错误 (用于 _too_short/_too_long 测试)。
+        duration_target_s_override: 显式指定 duration_target_s (默认 None)。
+            - None → 跟 pass_duration_target 走 (要么传 total, 要么不传)
+            - 整数 → 强制传指定值 (用于 P9 ±2s 容差测试)
     """
     total_dur = shot_duration * n_shots
     shots = [
@@ -99,7 +103,9 @@ def make_episode(
             forbidden_words_check=True,
         ),
     }
-    if pass_duration_target:
+    if duration_target_s_override is not None:
+        kwargs["duration_target_s"] = duration_target_s_override
+    elif pass_duration_target:
         kwargs["duration_target_s"] = total_dur
     return EpisodeScript(**kwargs)
 
@@ -149,17 +155,20 @@ class TestShot:
             make_shot(duration_s=31)
 
     def test_shot_extra_field_forbidden(self):
-        with pytest.raises(ValidationError):
-            Shot(
-                shot_no=1,
-                time_range="0-3s",
-                scene="x",
-                camera="x",
-                action="x",
-                subtitle="x",
-                duration_s=3,
-                unknown_field="bad",  # type: ignore[call-arg]
-            )
+        # P9 fix: Shot 改为 extra="ignore" (LLM 输出宽容, LLM 会有 shot_dialogue_quote 等额外字段)
+        # 旧测试期望 ValidationError, 现期望静默忽略
+        shot = Shot(
+            shot_no=1,
+            time_range="0-3s",
+            scene="x",
+            camera="x",
+            action="x",
+            subtitle="x",
+            duration_s=3,
+            unknown_field="bad",  # type: ignore[call-arg]
+        )
+        assert shot.shot_no == 1
+        assert not hasattr(shot, "unknown_field")  # extra 字段被忽略
 
     def test_shot_type_enum(self):
         for st in (
@@ -204,6 +213,25 @@ class TestEpisodeScript:
     def test_total_duration_too_long(self):
         with pytest.raises(ValidationError, match="总时长"):
             make_episode(n_shots=8, shot_duration=15, pass_duration_target=False)  # 120s > 90s
+
+    def test_duration_target_within_tolerance_ok(self):
+        """P9 fix: duration_target_s 与 shots 总和 ±2s 容差内合法
+        (LLM 经常给 60s 但 shots 总和 57-63s, 容忍即可)
+        """
+        # 5 shots × 8s = 40s, 传 42s (差 2s) → OK
+        ep = make_episode(n_shots=5, shot_duration=8, duration_target_s_override=42)
+        assert ep.total_duration_s == 40
+        assert ep.duration_target_s == 40  # 自动修正为聚合值
+
+    def test_duration_target_out_of_tolerance_rejected(self):
+        """duration_target_s 与 shots 总和 > 2s 偏离仍应拒"""
+        with pytest.raises(ValidationError, match="不一致"):
+            make_episode(n_shots=5, shot_duration=8, duration_target_s_override=50)  # 差 10s
+
+    def test_duration_target_zero_diff_ok(self):
+        """duration_target_s 完全相等 → OK (历史行为)"""
+        ep = make_episode(n_shots=5, shot_duration=8, duration_target_s_override=40)
+        assert ep.duration_target_s == 40
 
     def test_emotion_peaks_mismatch(self):
         """emotion_peak 实际数 ≠ self_check.emotion_peaks_count → 异常"""
@@ -303,30 +331,52 @@ class TestCriticVerdict:
         assert cv.verdict == Verdict.FAIL
 
     def test_score_aggregation_mismatch(self):
-        """total_score 与聚合公式不一致 → 异常"""
+        """total_score 与聚合公式不一致超过 ±3 → 异常 (LLM 公式理解有严重问题)"""
         perspectives = [
             PerspectiveScore(id=k, score=4, reason="x", improvement="x")
             for k in ("humor", "cuteness", "continuity", "rhythm", "red_line")
         ]
-        with pytest.raises(ValidationError, match="total_score"):
+        # 聚合值 = 12+12+8+4+4 = 40; total_score=45 偏差 5 → 超 ±3 应拒
+        with pytest.raises(ValidationError, match="超过"):
             CriticVerdict(
                 episode_id=1,
                 perspectives=perspectives,
-                total_score=99,  # 实际应为 41
+                total_score=45,  # 偏差 5, 超过 ±3
                 verdict=Verdict.PASS,
                 feedback="x",
                 should_rewrite=False,
             )
 
+    def test_score_aggregation_within_tolerance_silently_corrected(self):
+        """P9 fix: total_score 偏差 ≤3 → 静默覆盖为聚合值 (LLM 正常偏差范围)"""
+        perspectives = [
+            PerspectiveScore(id=k, score=4, reason="x", improvement="x")
+            for k in ("humor", "cuteness", "continuity", "rhythm", "red_line")
+        ]
+        # 聚合值 = 40; total_score=43 偏差 3 → 静默修正为 40
+        cv = CriticVerdict(
+            episode_id=1,
+            perspectives=perspectives,
+            total_score=43,
+            verdict=Verdict.PASS,
+            feedback="x",
+            should_rewrite=False,
+        )
+        assert cv.total_score == 40, "偏差 ≤3 应被静默修正为聚合值"
+
     def test_verdict_thresholds_mismatch(self):
-        """verdict 与 total_score 不一致 → 异常"""
-        # 构造 total=41 但 verdict=FAIL (实际应为 PASS)
-        with pytest.raises(ValidationError, match="应 PASS"):
-            make_critic_verdict(verdict=Verdict.FAIL)
+        """verdict 与 total_score 不一致 → 自动覆盖 (P9 fix)
+        历史: 原本抛异常, 但 LLM 经常 (35 分 → PASS), 静默覆盖更鲁棒
+        """
+        # total=41 但 verdict=FAIL (实际应为 PASS) → 自动覆盖为 PASS
+        cv = make_critic_verdict(verdict=Verdict.FAIL)
+        assert cv.verdict == Verdict.PASS, "verdict 应被自动覆盖为 PASS"
+        assert cv.should_rewrite is False, "PASS 时 should_rewrite 应为 False"
 
     def test_should_rewrite_mismatch(self):
-        """should_rewrite 应等于 verdict=FAIL"""
-        # 构造 PASS verdict 但 should_rewrite=True
+        """P9 fix: should_rewrite 不一致 → 静默覆盖为 verdict==FAIL
+        历史: 原本 raise ValueError, 但 LLM 经常 (PASS 但 should_rewrite=True), 静默覆盖更鲁棒
+        """
         cv_dict = {
             "episode_id": 1,
             "perspectives": [
@@ -336,10 +386,11 @@ class TestCriticVerdict:
             "total_score": 41,
             "verdict": "PASS",
             "feedback": "x",
-            "should_rewrite": True,  # 错误
+            "should_rewrite": True,  # 错误: PASS 时应为 False
         }
-        with pytest.raises(ValidationError, match="should_rewrite"):
-            CriticVerdict.model_validate(cv_dict)
+        cv = CriticVerdict.model_validate(cv_dict)
+        assert cv.verdict == Verdict.PASS
+        assert cv.should_rewrite is False, "PASS 时 should_rewrite 应被静默覆盖为 False"
 
     def test_perspectives_count_must_be_5(self):
         with pytest.raises(ValidationError):

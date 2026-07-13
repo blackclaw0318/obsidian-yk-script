@@ -127,7 +127,7 @@ def _format_backup_warning(
     """备份失败告警: ⚠️ (推送成功 + 备份失败)"""
     line1 = f"⚠️ 推送成功但备份失败 · yk-script S{season_id:02d}-EP{episode_idx:02d}"
     line2 = title if title else "(无标题)"
-    line3 = f"博客已发布 (公开), 备份未同步 (GitHub 备份失败)"
+    line3 = "博客已发布 (公开), 备份未同步 (GitHub 备份失败)"
     line4 = f"原因: {backup_error}"
     return "\n".join([line1, line2, line3, line4])
 

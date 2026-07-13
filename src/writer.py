@@ -157,6 +157,12 @@ class Writer:
                 "character_protagonist": characters["protagonist"],
                 "character_youkei": characters["youkei"],
                 "character_apartment": characters["apartment"],
+                "episode_spec": ep_data,  # P9 fix: writer.yaml system_prompt 模板 line 80-151 引用了 episode_spec (干跑隐藏 bug)
+                "season_context": {       # system_prompt 模板也可能引用 (如集阶段)
+                    "season_id": season_id,
+                    "stage_distribution": season_data["stage_distribution"],
+                    "quality_targets": season_data["quality_targets"],
+                },
             },
             field="system_prompt",
         )
@@ -206,7 +212,7 @@ class Writer:
                 user=user_prompt,
                 temperature=temperature,
                 max_tokens=self.max_tokens,
-                stream=True,
+                stream=False,  # P9 fix: 暂用非流式, 待 v0.4 加 SSE 解析 (SSE 需要拼接 message_delta, 不应响几十行手动拼接)
             )
             script = self._parse_response(response.text)
             return CandidateResult(
