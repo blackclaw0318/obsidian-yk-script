@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -33,6 +34,22 @@ from src.markdown_renderer import render_episode, render_preview
 from src.memory_manager import MemoryManager
 from src.types import EpisodeScript, HookSpec, HookType, SatisfactionType, SelfCheck, Shot
 from src.writer import WriterAllFailedError, make_default_writer
+
+# v0.3 增项
+from src.outline_fetcher import fetch_season_with_fallback  # P11
+from src.publisher import (  # P12
+    EpisodePayload,
+    Publisher,
+    make_default_publisher,
+    get_post_url,
+)
+from src.backup import Backup, BackupError, EpisodeMeta  # P13
+from src.wechat_notifier import (  # P14
+    WechatNotifierConfig,
+    notify_success as wechat_notify_success,
+    notify_failure as wechat_notify_failure,
+    notify_backup_warning as wechat_notify_backup_warning,
+)
 
 logger = logging.getLogger("yk-script.daily")
 
@@ -217,7 +234,106 @@ def make_dry_run_episode(ep: int = 1) -> EpisodeScript:
     )
 
 
-# ===== 主流程 =====
+# ===== P11: 拉取大纲 (辅助, 失败不阻塞) =====
+
+
+def _run_outline_pull(season_id: int) -> None:
+    """P11: 从 GitHub 拉大纲 (3 级 fallback)
+
+    失败不阻塞主流程 (daily 业务不依赖 outline, Writer 用本地 schema 生成)。
+    仅逻辑上拉一下, 验证 token 可用 + 充本地缓存供人类审阅。
+    """
+    try:
+        data, source = fetch_season_with_fallback(season_id=season_id)
+        logger.info(
+            f"✅ Outline S{season_id:02d} loaded (source={source}, "
+            f"episodes={len(data.get('episodes', []))}, "
+            f"total={data.get('total_episodes', '?')})",
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ P11 outline pull 失败 (已降级到本地或不运行): {e}")
+
+
+# ===== P12 + P13: publish + backup =====
+
+
+def _run_publish_and_backup(
+    *,
+    md: str,
+    season_id: int,
+    episode_idx: int,
+    title: str,
+    word_count: int,
+    duration_s: int,
+) -> tuple[object | None, str, str | None]:
+    """Publish + Backup 串联.
+
+    Returns:
+        (backup_result, post_url, err)
+        - err 非 None 表示 publish 整个级联失败 (含 backup)
+        - backup_result / post_url 都可能为 "不动某一下次" 状态
+    """
+    # P12: 推送 obsidian-journal
+    publisher = make_default_publisher()
+    if publisher is None:
+        return None, "", "Publisher 凭据缺失 (OBSIDIAN_PUBLISH_URL / SECRET)"
+
+    payload = EpisodePayload(
+        season_id=season_id,
+        episode_idx=episode_idx,
+        title=title,
+        content_md=md,
+        word_count=word_count,
+    )
+    try:
+        publish_resp = publisher.push_one(payload)
+        post_url = get_post_url(publish_resp)
+        logger.info(f"✅ Published: {payload.slug} -> {post_url}")
+    except Exception as e:
+        return None, "", f"Publish 失败 ({type(e).__name__}): {str(e)[:200]}"
+
+    # P13: GitHub 备份 (失败不阻塞, 但返回 None)
+    token = os.environ.get("GITHUB_BACKUP_TOKEN", "")
+    if not token:
+        logger.warning("[daily] GITHUB_BACKUP_TOKEN 未设置, 跳过 backup")
+        return None, post_url, None
+
+    try:
+        backup = Backup(token=token)
+        meta = EpisodeMeta.now(
+            season_id=season_id,
+            episode_idx=episode_idx,
+            title=title,
+            word_count=word_count,
+            post_url=post_url,
+        )
+        result = backup.upload(md=md, meta=meta)
+        return result, post_url, None
+    except BackupError as e:
+        logger.warning(f"[daily] Backup 失败 (不阻塞): {e}")
+        # 返回 (None, post_url, None) 表示 publish OK + backup FAILED
+        # 调用者根据 pub_url 存在与 backup_result 为 None 决定发 backup_warning
+        return _BackupFailureMarker(), post_url, None
+
+
+# sentinel marker class for "backup failed but publish succeeded"
+class _BackupFailureMarker:
+    """轻量标记类, 让 _run_publish_and_backup 返回值可判别 backup 状态"""
+
+    def __init__(self):
+        self.commit_sha = ""
+        self.pushed_files: list[str] = []
+
+
+def _count_words(md: str) -> int:
+    """中文字数计数 (粗估, 按 '字符数 - 标点数')"""
+    text = md
+    count = 0
+    for ch in text:
+        # 中文 UTF-8 高位
+        if "\u4e00" <= ch <= "\u9fff":
+            count += 1
+    return count
 def main(
     dry_run: bool = False,
     force_episode: int | None = None,
@@ -243,6 +359,9 @@ def main(
     state = state_store.load()
     state_store.update(increment_runs=True)
     state["season_id"] = season_id  # 同步季节参数
+
+    # 0. P11: 拉取大纲 (3 级 fallback, 失败不阻塞)
+    _run_outline_pull(season_id)
 
     # 1. 决定本集
     target_ep = force_episode or state.get("next_ep", 1)
@@ -289,15 +408,73 @@ def main(
     output_path.write_text(md, encoding="utf-8")
     logger.info(f"✅ Markdown 写入: {output_path} ({len(md)} chars)")
 
-    # 7. Publish / Dry-run
+    # 7. Publish / Backup / Wechat (v0.3 P12/13/14)
     if dry_run:
-        logger.info(f"DRY-RUN: 跳过 publish, 已写入 {output_path}")
+        logger.info(f"DRY-RUN: 跳过 publish/backup/wechat, 已写入 {output_path}")
         preview_path = output_dir / f"yk-s{season_id:02d}-ep{target_ep:02d}-preview.md"
         preview_path.write_text(render_preview(best_script), encoding="utf-8")
         logger.info(f"DRY-RUN: 预览写入 {preview_path}")
     else:
-        # TODO P11-P13: 实 GitHub 拉大纲 / 推 obsidian-journal / GitHub backup / 微信 notifier
-        logger.warning("Publish 步骤未实现 (P11-P13 占位), 仅本地写盘")
+        # P12: 实推送 obsidian-journal
+        # P13: 推送成功后实备份到 GitHub
+        # P14: 根据上面阶段状态推微信
+        publish_result, post_url, episode_err = _run_publish_and_backup(
+            md=md,
+            season_id=season_id,
+            episode_idx=target_ep,
+            title=best_script.title,
+            word_count=_count_words(md),
+            duration_s=best_script.total_duration_s,
+        )
+
+        # 推送级联 状态:
+        #  1) publish 失败 -> wechat 失敗告警 -> daily return 1
+        #  2) publish 成功 + backup 成功 -> wechat 成功 -> return 0
+        #  3) publish 成功 + backup 失败 -> wechat 警告 -> return 0 (推送已成功)
+        if episode_err is not None:
+            _alert_failure(
+                f"S{season_id:02d}-EP{target_ep:02d} '{best_script.title}'",
+                [episode_err],
+            )
+            # P14: 推送失败 微信告警
+            wechat_cfg = WechatNotifierConfig.from_env()
+            wechat_notify_failure(
+                wechat_cfg,
+                season_id=season_id,
+                episode_idx=target_ep,
+                title=best_script.title,
+                error_short=episode_err[:200],
+            )
+            return 1
+
+        if publish_result and publish_result.commit_sha:
+            # backup 成功
+            logger.info(
+                f"[daily] ✅ publish + backup 完成: post={post_url} commit={publish_result.commit_sha[:12]}",
+            )
+            wechat_cfg = WechatNotifierConfig.from_env()
+            wechat_notify_success(
+                wechat_cfg,
+                season_id=season_id,
+                episode_idx=target_ep,
+                title=best_script.title,
+                word_count=_count_words(md),
+                duration_s=best_script.total_duration_s,
+                post_url=post_url,
+            )
+        else:
+            # 推送成功 + 备份失败 (publish_result 是 None + post_url 存在但 backup fail)
+            logger.warning("[daily] 推送成功但备份失败")
+            # post_url 可能为 "" 或 "" 如本地 publish 临时返回；wechat 发警告
+            wechat_cfg = WechatNotifierConfig.from_env()
+            # 发送 backup warning (post_url 可能不是正式 URL)
+            wechat_notify_backup_warning(
+                wechat_cfg,
+                season_id=season_id,
+                episode_idx=target_ep,
+                title=best_script.title,
+                backup_error="GitHub backup failed (see logs/yk-daily.log)",
+            )
 
     # 8. 更新 state + memory
     mm.save()
