@@ -13,7 +13,7 @@ data/state/
 data/state.json
 data/state.json.lock
 data/memory.json
-data/cache/                      # v0.3: GitHub outline 拉取缓存
+data/cache/
 data/continuity/prev_summaries.json
 
 # ── 日志 ──
