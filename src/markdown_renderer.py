@@ -54,15 +54,21 @@ def render_episode(script: EpisodeScript) -> str:
     lines.append("---")
     lines.append("")
 
-    # ===== 标题 + 元信息 =====
-    lines.append(f"# 📺 EP{script.ep:02d} · {script.title}")
+    # ===== H1 (无 emoji, 避免和 frontmatter 重复 + 跟 chip meta 风格统一) =====
+    lines.append(f"# EP{script.ep:02d} · {script.title}")
     lines.append("")
-    lines.append(f"> {script.logline}")
+
+    # ===== logline (单 emoji, blockquote 样式) =====
+    lines.append(f"> 💬 {script.logline}")
     lines.append("")
+
+    # ===== Meta chip 化 (替代旧的裸 inline 样式) =====
+    hook_label = script.hook.type.value if script.hook.type else "季末温馨"
     lines.append(
-        f"**时长**: {script.total_duration_s}s · "
-        f"**镜头**: {len(script.shots)} · "
-        f"**钩子**: {script.hook.type.value if script.hook.type else '无 (EP12 季末)'}",
+        f"| ⏱️ {script.total_duration_s}s "
+        f"| 🎞️ {len(script.shots)} shots "
+        f"| 🎯 {hook_label} "
+        f"| 🏷️ 上坤 × YouKei |",
     )
     lines.append("")
     lines.append("---")
@@ -75,8 +81,6 @@ def render_episode(script: EpisodeScript) -> str:
         lines.append(f"> **{script.hook.type.value}** · {script.hook.subtype or ''}")
         lines.append("")
         lines.append(f"_{script.hook.text}_")
-        lines.append("")
-        lines.append("---")
         lines.append("")
 
     # ===== Shots 分镜 =====
@@ -110,16 +114,12 @@ def render_episode(script: EpisodeScript) -> str:
         pos_str = ", ".join(f"{p:.0f}%" for p in script.peak_positions)
         lines.append(f"**情绪波峰位置**: {pos_str} (理想: 15% / 50% / 85%)")
         lines.append("")
-    lines.append("---")
-    lines.append("")
 
     # ===== 爽点 + 类型 =====
     lines.append("## ✨ 爽点类型")
     lines.append("")
     satisfaction_str = " · ".join(s if isinstance(s, str) else s.value for s in script.satisfaction_types)
     lines.append(f"**{satisfaction_str}**")
-    lines.append("")
-    lines.append("---")
     lines.append("")
 
     # ===== Writer 自检 (5 项) =====
@@ -137,16 +137,12 @@ def render_episode(script: EpisodeScript) -> str:
         mark = "✅" if ok else "❌"
         lines.append(f"- {mark} {label}")
     lines.append("")
-    lines.append("---")
-    lines.append("")
 
     # ===== 下集预告 =====
     if script.next_episode_seed:
         lines.append("## 👀 下集预告")
         lines.append("")
         lines.append(f"_{script.next_episode_seed}_")
-        lines.append("")
-        lines.append("---")
         lines.append("")
 
     # ===== Footer =====
