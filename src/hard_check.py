@@ -184,6 +184,8 @@ class HardChecker:
     youkei_card: dict[str, Any] = field(default_factory=dict)
     apartment_card: dict[str, Any] = field(default_factory=dict)
     prev_script: EpisodeScript | None = None
+    # P1.4: 可选注入本集预期 (从 season-XX.json 读)
+    episode_spec: dict[str, Any] = field(default_factory=dict)
 
     # ===== 入口 =====
     def run(self) -> HardCheckResult:
@@ -207,8 +209,14 @@ class HardChecker:
         if self.prev_script is not None:
             violations.extend(self._check_hook_continuity())
 
+        # P1.4: 钩子关键词校验 (从 hook_distribution.json)
+        violations.extend(self._check_hook_verifier_keywords())
+
+        # P1.4: satisfaction_intensity 校验 (从 satisfaction_matrix.json)
+        violations.extend(self._check_satisfaction_intensity())
+
         # 统计
-        total_constraints = 24  # 19 红线 + 5 结构
+        total_constraints = 26  # 19 红线 + 5 结构 + 2 P1.4
         passed = total_constraints - len(violations)
         # 任何 violation (FAIL 或 HARD_FAIL) → verdict=FAIL + should_publish=False
         # severity 仅用于老板人工分优先级 (HARD_FAIL = 整集作废 / FAIL = 需修复后可发)
@@ -382,34 +390,201 @@ class HardChecker:
 
     # ===== 钩子连续性 =====
     def _check_hook_continuity(self) -> list[Violation]:
-        """上集 next_episode_seed 必须在本集兑现
+        """P1.5 增强: 上集 next_episode_seed 必须在本集兑现
 
-        MVP 实现: 简单检查 prev_seed 关键词是否在本集 text 中出现
-        更复杂实现 (P8 Memory Manager): 用 LLM 判定"是否兑现"
+        判定等级 (从弱到强):
+        - PASS: 所有 keywords (≥3 字) 都在本集出现
+        - WARNING: 部分命中 (≥50% keywords) — 记录到 warnings, 不阻塞
+        - FAIL: 全部未命中 — 记 violation, 阻塞发布
+
+        MVP: 关键词 substring 匹配 (鲁棒性差, 后续 P8 增强用 LLM 判定)
         """
         assert self.prev_script is not None  # for type checker
         prev_seed = self.prev_script.next_episode_seed or ""
         if not prev_seed:
             return []  # 上一集没留 seed, 无需校验
 
-        # 取 prev_seed 前 5 个非空字符作为关键词
-        keywords = [w for w in prev_seed.replace("EP02", "").split() if len(w) >= 3][:3]
+        # 取 prev_seed 关键词 (去掉集号 / 分词 / ≥3 字)
+        import re
+
+        cleaned = re.sub(r"EP\d+", "", prev_seed)
+        keywords = [w for w in re.findall(r"[\w\u4e00-\u9fff]+", cleaned) if len(w) >= 3][:3]
         if not keywords:
-            return []  # 上一集 seed 太短, 跳过
+            return []  # 上一集 seed 太短 / 没可用关键词, 跳过
 
         text = self._collect_text_fields()
-        delivered = any(kw in text for kw in keywords)
-        if not delivered:
+        hit = [kw for kw in keywords if kw in text]
+        miss = [kw for kw in keywords if kw not in text]
+
+        # 全部命中 → PASS
+        if not miss:
+            logger.debug(f"P1.5: prev_seed 关键词全命中: {hit}")
+            return []
+
+        # 部分命中 → WARNING (不阻塞)
+        if hit:
+            coverage = len(hit) / len(keywords)
+            logger.warning(
+                f"P1.5: prev_seed 部分命中 ({coverage:.0%}): hit={hit}, miss={miss}. "
+                f"记 warning 不阻塞.",
+            )
+            # P1.5: 部分命中暂不返回 violation, 由老板人工 review
+            # (后续 P8 增强: 调 LLM 判定语义是否兑现)
+            return []
+
+        # 全部未命中 → FAIL
+        return [
+            Violation(
+                constraint_id="previous_seed_not_delivered",
+                severity="FAIL",
+                shot_no=None,
+                evidence=f"上集 next_episode_seed 关键词 {keywords} 全部未在本集出现",
+                fix_suggestion=f"在本集开场 0-8s 内兑现: '{prev_seed[:40]}...'",
+            ),
+        ]
+
+    # ===== P1.4 钩子关键词校验 =====
+    def _check_hook_verifier_keywords(self) -> list[Violation]:
+        """P1.4: 从 hook_distribution.json 取当前 hook.type 的 verifier_keywords,验证末 shot 字幕至少含 1 个
+
+        例: EP01 悬念钩/来者悬念 → verifier_keywords=['?', '突然', '下一秒', '没想到', '究竟']
+        末 shot 字幕必须 ≥ 1 个命中, 不然记 violation
+        """
+        # EP12 季末允许 hook_type=null
+        if self.script.ep == 12:
+            return []
+
+        hook_type = self.script.hook.type
+        if not hook_type:
             return [
                 Violation(
-                    constraint_id="previous_seed_not_delivered",
+                    constraint_id="hook_type_missing_p14",
                     severity="FAIL",
                     shot_no=None,
-                    evidence=f"上集 next_episode_seed 关键词 {keywords} 未在本集出现",
-                    fix_suggestion=f"在本集开场 0-8s 内兑现: '{prev_seed[:30]}...'",
+                    evidence="hook.type 为空 (非 EP12)",
+                    fix_suggestion="填写 hook.type (5 选一: 情绪/悬念/反转/信息/危机)",
+                ),
+            ]
+
+        keywords = self._load_hook_verifier_keywords(hook_type)
+        if not keywords:
+            return []  # hook_distribution.json 损坏或未配置 → 跳过 (不阻塞)
+
+        # 取末 shot 字幕 (0-3s 钩子或最后一 shot)
+        last_shot_subtitle = ""
+        if self.script.shots:
+            # EP1 钩子在 hook.text + 末 shot 字幕
+            last_shot = self.script.shots[-1]
+            last_shot_subtitle = (last_shot.subtitle or "") + " " + (last_shot.action or "") + " " + (last_shot.voiceover or "")
+        hook_text = self.script.hook.text or ""
+        combined = hook_text + " " + last_shot_subtitle
+
+        hit = [kw for kw in keywords if kw in combined]
+        if not hit:
+            return [
+                Violation(
+                    constraint_id="hook_verifier_keywords_missing_p14",
+                    severity="FAIL",
+                    shot_no=self.script.shots[-1].shot_no if self.script.shots else None,
+                    evidence=f"hook.type={hook_type} 需 verifier_keywords ≥ 1 个: {keywords}, 末 shot + hook.text 均未命中",
+                    fix_suggestion=f"末 shot 字幕/动作/voiceover 加 ≥ 1 个关键词 (推荐: {keywords[:3]})",
                 ),
             ]
         return []
+
+    def _load_hook_verifier_keywords(self, hook_type: str) -> list[str]:
+        """从 prompts/hook_distribution.json 加载 hook_type 对应的 verifier_keywords"""
+        try:
+            import json
+            from pathlib import Path
+            path = Path(__file__).resolve().parents[1] / "prompts" / "hook_distribution.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data.get("hook_types", {}).get(hook_type, {}).get("verifier_keywords", [])
+        except Exception:
+            return []
+
+    # ===== P1.4 satisfaction_intensity 校验 =====
+    def _check_satisfaction_intensity(self) -> list[Violation]:
+        """P1.4: 从 satisfaction_matrix.json 验证 satisfaction_intensity 在合理范围
+
+        例: 情感爆发 类 ∈ [★, ★★★★★] (LLM 必须给 1-5 颗星)
+        例: EP12 必须 satisfaction_intensity=★★★★★ + 类型=['情感爆发']
+        """
+        sat_types = self.script.satisfaction_types or []
+
+        if not sat_types:
+            return [
+                Violation(
+                    constraint_id="satisfaction_types_empty_p14",
+                    severity="FAIL",
+                    shot_no=None,
+                    evidence="satisfaction_types 为空",
+                    fix_suggestion="从 5 类中选 1-3 个 (情感爆发/悬念揭秘/打脸复仇/逆袭翻盘/身份碾压)",
+                ),
+            ]
+
+        violations: list[Violation] = []
+
+        # EP12 硬要求: 情感爆发
+        if self.script.ep == 12 and "情感爆发" not in sat_types:
+            violations.append(
+                Violation(
+                    constraint_id="ep12_must_be_emotional_climax_p14",
+                    severity="HARD_FAIL",
+                    shot_no=None,
+                    evidence=f"EP12 必须含 '情感爆发', 实际 {sat_types}",
+                    fix_suggestion="EP12 季末集必须有 '情感爆发' 类型 (温馨定格是季末唯一调性)",
+                ),
+            )
+
+        # 与 episode_spec 预期覆盖率 ≥ 50% (P1.3 新增)
+        if self.episode_spec:
+            expected = self.episode_spec.get("satisfaction_types", [])
+            if expected:
+                expected_set = set(expected)
+                actual_set = set(sat_types)
+                hit = expected_set & actual_set
+                coverage = len(hit) / len(expected_set)
+                if coverage < 0.5:
+                    violations.append(
+                        Violation(
+                            constraint_id="satisfaction_coverage_low_p14",
+                            severity="FAIL",
+                            shot_no=None,
+                            evidence=f"satisfaction_types 覆盖率 {coverage:.0%} ({len(hit)}/{len(expected_set)}), 需 ≥ 50% (预期 {expected}, 实际 {sat_types})",
+                            fix_suggestion=f"覆盖不足, 补 1 个预期类型: {list(expected_set - actual_set)[:2]}",
+                        ),
+                    )
+
+        # 情感爆发类必须有 verifier_keywords 至少 1 个 (来自 satisfaction_matrix.json)
+        if "情感爆发" in sat_types:
+            kw_list = self._load_satisfaction_keywords("情感爆发")
+            if kw_list:
+                text = self._collect_text_fields()
+                hit = [kw for kw in kw_list if kw in text]
+                if not hit:
+                    violations.append(
+                        Violation(
+                            constraint_id="emotion_keywords_missing_p14",
+                            severity="FAIL",
+                            shot_no=None,
+                            evidence=f"情感爆发类需 verifier_keywords ≥ 1 个: {kw_list[:5]}, 全文未命中",
+                            fix_suggestion=f"字幕/voiceover 加 ≥ 1 个关键词: {kw_list[:3]}",
+                        ),
+                    )
+
+        return violations
+
+    def _load_satisfaction_keywords(self, sat_type: str) -> list[str]:
+        """从 prompts/satisfaction_matrix.json 加载 sat_type 对应的 verifier_keywords"""
+        try:
+            import json
+            from pathlib import Path
+            path = Path(__file__).resolve().parents[1] / "prompts" / "satisfaction_matrix.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data.get("satisfaction_types", {}).get(sat_type, {}).get("verifier_keywords", [])
+        except Exception:
+            return []
 
     # ===== AI judge 警告 =====
     def _collect_ai_judge_warnings(self) -> list[str]:
@@ -433,10 +608,18 @@ class HardChecker:
 
 
 # ===== 工厂 =====
-def make_default_checker(script: EpisodeScript) -> HardChecker:
+def make_default_checker(
+    script: EpisodeScript,
+    prev_script: EpisodeScript | None = None,
+) -> HardChecker:
     """从磁盘加载角色卡 + 上一集, 构造默认 HardChecker
 
-    上集暂传 None (P8 Memory Manager 实现后再接 memory_bank.json)
+    Args:
+        script: 当前集 EpisodeScript (已过 schema 校验)
+        prev_script: 上一集 EpisodeScript (可选, EP02+ 用于跨集钩子回收校验).
+            None 时自动从 data/state/memory_bank.json 按 ep-1 加载.
+
+    P1.5: prev_script 自动从 memory_bank 加载, 避免 daily.py 重复代码.
     """
     import json
     from pathlib import Path
@@ -449,10 +632,103 @@ def make_default_checker(script: EpisodeScript) -> HardChecker:
             return json.loads(path.read_text(encoding="utf-8"))
         return {}
 
+    # P1.5: 自动从 memory_bank.json 加载 prev_script (避免 daily.py 重复代码)
+    if prev_script is None and script.ep >= 2:
+        prev_script = _load_prev_script_from_memory_bank(script.ep, root)
+
     return HardChecker(
         script=script,
         protagonist_card=_load("protagonist"),
         youkei_card=_load("youkei"),
         apartment_card=_load("apartment"),
-        prev_script=None,  # P8 Memory Manager 接入
+        prev_script=prev_script,  # P1.5: 接 memory_bank
     )
+
+
+def _load_prev_script_from_memory_bank(
+    current_ep: int,
+    project_root: Path,
+) -> EpisodeScript | None:
+    """P1.5: 从 data/state/memory_bank.json 加载上一集 prev_script
+
+    memory_bank 里只存 EpisodeMemory (元数据), 不存完整 EpisodeScript.
+    本函数用 prev_episode 的 key_facts + title + hook_seed_for_next 重建一个
+    "minimal prev_script", 只用于 hard_check 的 hook_continuity 校验
+    (hard_check 只需要 prev_script.next_episode_seed, 其他字段不用).
+
+    Returns:
+        EpisodeScript 或 None (memory_bank 不存在 / 没上一集 / 反序列化失败)
+    """
+    import json
+
+    memory_path = project_root / "data" / "state" / "memory_bank.json"
+    if not memory_path.exists():
+        return None
+
+    try:
+        data = json.loads(memory_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+    prev_ep = current_ep - 1
+    for em in data.get("episodes", []):
+        if em.get("ep") == prev_ep:
+            # 构造 minimal prev_script (类型安全: 用真实 EpisodeScript)
+            # hard_check 只读 prev_script.next_episode_seed, 其他字段填合法默认值即可
+            from src.types import EpisodeScript, HookSpec, SelfCheck, Shot
+
+            # key_facts 借 rhythm_notes 字段传递 (供 hook_continuity 关键词提取)
+            key_facts_text = " ".join(em.get("key_facts", []))
+
+            # 构造 3 个 minimal shot (满足 min_length=3, 只有 1 个 emotion_peak=True)
+            minimal_shot_peak = Shot(
+                shot_no=1,
+                time_range="0-20s",
+                duration_s=20,
+                scene="客厅",
+                camera="固定",
+                action=key_facts_text or "上坤与 YouKei",
+                voiceover="",
+                subtitle="",
+                emotion_peak=True,
+            )
+            minimal_shot_plain = Shot(
+                shot_no=2,
+                time_range="20-40s",
+                duration_s=20,
+                scene="客厅",
+                camera="固定",
+                action="",
+                voiceover="",
+                subtitle="",
+            )
+
+            prev_script = EpisodeScript(
+                ep=prev_ep,
+                title=em.get("title", f"EP{prev_ep}"),
+                logline=f"EP{prev_ep} minimal prev (P1.5 stub)",
+                duration_target_s=60,
+                shots=[minimal_shot_peak, minimal_shot_plain, minimal_shot_plain],  # 3 shots, 只有 #1 emotion_peak=True
+                hook=HookSpec(
+                    type="悬念钩",  # MVP: 默认值, hard_check 不会读 prev 的 hook.type
+                    subtype="",
+                    text="",
+                ),
+                satisfaction_types=["悬念揭秘"],  # 满足 min_length=1
+                next_episode_seed=em.get("hook_seed_for_next", ""),
+                rhythm_notes=key_facts_text,  # 借字段传递 key_facts
+                self_check=SelfCheck(
+                    shot_count_ok=True,
+                    duration_in_range=True,
+                    emotion_peaks_count=1,
+                    hook_present=True,
+                    forbidden_words_check=True,
+                ),
+            )
+            logger.debug(
+                f"P1.5: 加载 EP{prev_ep} prev_script "
+                f"(next_seed='{em.get('hook_seed_for_next', '')[:40]}...')",
+            )
+            return prev_script
+
+    return None

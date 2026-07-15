@@ -63,6 +63,19 @@ system_prompt: |
   - `paywall-design.md` → 留悬念设计 (季末集无)
   - `compliance-checklist.md` → 合规清单
 
+  ## 📊 季上下文 (从 season-01.json 注入, 决定本集节奏与强度)
+  - **季**: S01 ({{ season_context.season_id }}) — {{ season_context.title }}
+  - **主题**: {{ season_context.theme }}
+  - **季进度**: 本集 EP{{ episode_spec.ep }} / 季共 {{ season_context.total_episodes }} 集 ({{ pct }}% 位置)
+  - **当前舞台**: {{ episode_spec.stage }} — {{ season_context.stage_description }}
+  - **节奏强度**: {{ season_context.stage_intensity }}
+  - **爽点配比 (本季目标)**: 情感爆发 60% / 悬念揭秘 20% / 打脸复仇 10% / 逆袭翻盘 5% / 身份碾压 5%
+  - **爽点配比 (当前阶段适配)**: {{ season_context.stage_adaptations }}
+  - **钩子配比 (本季目标)**: 情绪 30% / 悬念 25% / 反转 20% / 信息 15% / 危机 10%
+  - **本集钩子关键词必含**: {{ season_context.hook_verifier_keywords | join(' / ') }}
+  - **质量硬目标**: 镜头 {{ season_context.quality_targets.shot_count }} / 时长 {{ season_context.quality_targets.duration_target_s }}s / 情绪波峰 {{ season_context.quality_targets.emotion_peaks_per_episode }}
+  - **钩子强度要求**: {{ season_context.hook_strength_min }}
+
   ## 🗣 写作风格 (上坤的剧本视角)
   - **人称**: 第一人称 "我" (画外音 + 字幕)
   - **对猫说话**: 第二人称 "你" (直接把 YouKei 当对话对象)
@@ -149,6 +162,12 @@ user_prompt_template: |
   - {{ m }}
   {% endfor %}
   **节奏提示**: {{ episode_spec.rhythm_notes }}
+  **下一集钩子 (本集末 3s 必须给这个 seed)**: {{ episode_spec.next_episode_seed }}
+
+  ## 🎯 钩子兑现要求 (本集必须落实)
+  - 本集 hook_text_template: "{{ episode_spec.hook_text_template }}" — 末 3s 字幕或镜头必须**兑现**这句提示
+  - verifier_keywords (本钩子类型必含): {{ season_context.hook_verifier_keywords | join(' / ') }}
+  - 末 3s 不能只复述 hook_text_template, 必须**展开**(画面/字幕/拟声词 ≥ 1 个)
 
   ## 🎭 角色档案 (请严格遵守)
   **上坤 (主人)**:

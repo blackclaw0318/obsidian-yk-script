@@ -72,8 +72,21 @@ def characters() -> dict:
 def season_context() -> dict:
     return {
         "season_id": 1,
+        "title": "上坤 × YouKei 入住 60 平新家 30 天",
+        "theme": "适应、共处、萌点、生活小摩擦、温馨收尾",
+        "total_episodes": 12,
         "stage_distribution": {"起势段": 3, "递进段": 4, "爆发段": 3, "收束段": 2},
-        "quality_targets": {"shots_min": 3, "shots_max": 8, "duration_min_s": 30, "duration_max_s": 90},
+        "stage_description": "建立核心角色 + 萌点铺设 + 钩子悬念",
+        "stage_intensity": "★★",
+        "stage_adaptations": "情感爆发 100% (建立核心情感)",
+        "hook_verifier_keywords": ["?", "突然", "下一秒"],
+        "quality_targets": {
+            "shot_count": "3-8 个",
+            "duration_target_s": 60,
+            "emotion_peaks_per_episode": "至少 1 个 (15% / 50% / 85% 位置)",
+            "hook_strength_min": "中等 (EP01-02 引入期)",
+        },
+        "hook_strength_min": "中等 (EP01-02 引入期)",
     }
 
 
@@ -94,6 +107,7 @@ class TestPromptRendering:
             "episode_spec": episode_data,
             "season_context": season_context,
             "references_excerpt": "",
+            "pct": 25,  # EP5 / 12 = 42%, 但 fixture 简化为 25
         }
 
         # 不应抛 UndefinedError
@@ -118,6 +132,7 @@ class TestPromptRendering:
             "episode_spec": episode_data,
             "season_context": season_context,
             "references_excerpt": "",
+            "pct": 25,
         }
 
         result = render_prompt_template("writer.yaml", ctx, field="user_prompt_template")
@@ -138,6 +153,7 @@ class TestPromptRendering:
             "episode_spec": episode_data,
             "season_context": season_context,
             "references_excerpt": "",
+            "pct": 25,
         }
 
         sys_p = render_prompt_template("writer.yaml", ctx, field="system_prompt")
@@ -163,3 +179,111 @@ class TestPromptRendering:
 
 
 # 防止 pytest skip import 报错
+
+
+class TestBuildSeasonContext:
+    """P1.2: Writer._build_season_context 注入完整季上下文"""
+
+    def test_season_context_required_keys(self, episode_data):
+        """_build_season_context 返回的 dict 必含 10 个 P1.2 字段"""
+        import json
+        from src.writer import Writer
+
+        class _M:
+            pass
+
+        season = json.load(open("data/seasons/season-01.json"))
+        ep1 = next(e for e in season["episodes"] if e["ep"] == 1)
+        ctx = Writer(_M())._build_season_context(season, ep1)
+
+        required = {
+            "season_id", "title", "theme", "total_episodes",
+            "stage_distribution", "stage_description", "stage_intensity",
+            "stage_adaptations", "hook_verifier_keywords",
+            "quality_targets", "hook_strength_min",
+        }
+        assert required.issubset(ctx.keys()), f"缺失: {required - ctx.keys()}"
+
+    def test_stage_description_lookup(self, episode_data):
+        """stage_description 应该从 stage_distribution[stage].description 查"""
+        import json
+        from src.writer import Writer
+
+        class _M:
+            pass
+
+        season = json.load(open("data/seasons/season-01.json"))
+        ep1 = next(e for e in season["episodes"] if e["ep"] == 1)
+        ctx = Writer(_M())._build_season_context(season, ep1)
+        assert ctx["stage_description"] == season["stage_distribution"]["起势段"]["description"]
+
+    def test_hook_keywords_match_distribution_json(self, episode_data):
+        """hook_verifier_keywords 应该从 hook_distribution.json 取"""
+        import json
+        from src.writer import Writer
+
+        class _M:
+            pass
+
+        season = json.load(open("data/seasons/season-01.json"))
+        ep1 = next(e for e in season["episodes"] if e["ep"] == 1)
+        ctx = Writer(_M())._build_season_context(season, ep1)
+        # EP01 是悬念钩
+        assert isinstance(ctx["hook_verifier_keywords"], list)
+        assert len(ctx["hook_verifier_keywords"]) >= 1
+        assert "?" in ctx["hook_verifier_keywords"] or "突然" in ctx["hook_verifier_keywords"]
+
+    def test_stage_adaptations_match_matrix_json(self, episode_data):
+        """stage_adaptations 应该从 satisfaction_matrix.json validation_rules 取"""
+        import json
+        from src.writer import Writer
+
+        class _M:
+            pass
+
+        season = json.load(open("data/seasons/season-01.json"))
+        ep1 = next(e for e in season["episodes"] if e["ep"] == 1)
+        ctx = Writer(_M())._build_season_context(season, ep1)
+        # EP01 是起势段
+        assert "情感爆发" in ctx["stage_adaptations"]
+
+
+class TestP12SeasonContextInPrompt:
+    """P1.2: writer.yaml 渲染结果应包含季上下文"""
+
+    def test_system_prompt_includes_season_context(self, episode_data, characters, season_context):
+        """system_prompt 应包含'季上下文' 段"""
+        from src.prompt_renderer import render_prompt_template
+
+        ctx = {
+            **characters,
+            "episode_spec": episode_data,
+            "season_context": season_context,
+            "references_excerpt": "",
+            "pct": 25,
+        }
+        result = render_prompt_template("writer.yaml", ctx, field="system_prompt")
+
+        # 关键字段应在
+        assert "## 📊 季上下文" in result
+        assert "季进度" in result
+        assert "爽点配比" in result
+        assert "钩子配比" in result
+        assert "质量硬目标" in result
+
+    def test_user_prompt_includes_hook_keywords(self, episode_data, characters, season_context):
+        """user_prompt 应包含钩子兑现要求 + 关键词"""
+        from src.prompt_renderer import render_prompt_template
+
+        ctx = {
+            **characters,
+            "episode_spec": episode_data,
+            "season_context": season_context,
+            "references_excerpt": "",
+            "pct": 25,
+        }
+        result = render_prompt_template("writer.yaml", ctx, field="user_prompt_template")
+
+        assert "## 🎯 钩子兑现要求" in result
+        assert "下一集钩子" in result  # next_episode_seed 注入
+        assert "verifier_keywords" in result  # hook keywords 注入

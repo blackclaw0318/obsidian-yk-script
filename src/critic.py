@@ -74,11 +74,20 @@ class Critic:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-    def critique_episode(self, script: EpisodeScript) -> CriticResult:
+    def critique_episode(
+        self,
+        script: EpisodeScript,
+        episode_spec: dict[str, Any] | None = None,  # P1.3: 季节上下文
+        season_context: dict[str, Any] | None = None,
+    ) -> CriticResult:
         """评审单个 EpisodeScript
 
         Args:
             script: Writer L1 输出的剧本
+            episode_spec: P1.3 — 从 season-XX.json 注入的本集预期
+                          (含 hook_type / satisfaction_types / intensity / rhythm_notes / next_episode_seed)
+            season_context: P1.3 — 从 season-XX.json 注入的季上下文
+                          (含 stage_distribution / stage_adaptations / hook_verifier_keywords)
 
         Returns:
             CriticResult: 含 verdict / 失败时 error 字段
@@ -87,10 +96,12 @@ class Critic:
 
         # 1. 渲染 system prompt (含 5 视角详细评分标准)
         rubric = self._load_rubric()
-        system_prompt = self._build_system_prompt(rubric, characters)
+        system_prompt = self._build_system_prompt(
+            rubric, characters, episode_spec, season_context,
+        )
 
         # 2. 渲染 user prompt (含本集剧本)
-        user_prompt = self._build_user_prompt(script)
+        user_prompt = self._build_user_prompt(script, episode_spec, season_context)
 
         # 3. 调用 LLM
         try:
@@ -122,11 +133,15 @@ class Critic:
     def select_best(
         self,
         candidates: list[EpisodeScript],
+        episode_spec: dict[str, Any] | None = None,  # P1.3: 同一份 spec 传给所有候选
+        season_context: dict[str, Any] | None = None,
     ) -> tuple[EpisodeScript | None, dict[int, CriticVerdict]]:
         """从 N 个候选中选最优 (verdict 最高 → EXCELLENT 优先)
 
         Args:
             candidates: Writer 输出的候选列表
+            episode_spec: P1.3 — season-XX.json 本集预期, 传入所有候选
+            season_context: P1.3 — season-XX.json 季上下文, 传入所有候选
 
         Returns:
             (best_script, verdict_map):
@@ -136,7 +151,7 @@ class Critic:
         """
         verdict_map: dict[int, tuple[EpisodeScript, CriticVerdict]] = {}
         for cand in candidates:
-            result = self.critique_episode(cand)
+            result = self.critique_episode(cand, episode_spec, season_context)
             if result.verdict is not None:
                 # P9 fix: EpisodeScript 是 Pydantic BaseModel, 不可哈希, 用 ep 编号当 key
                 verdict_map[cand.ep] = (cand, result.verdict)
@@ -163,15 +178,30 @@ class Critic:
         self,
         rubric: dict[str, Any],
         characters: dict[str, Any],
+        episode_spec: dict[str, Any] | None = None,  # P1.3
+        season_context: dict[str, Any] | None = None,
     ) -> str:
-        """构建 Critic system prompt (5 视角详细评分标准 + 红线)"""
+        """构建 Critic system prompt (5 视角详细评分标准 + 红线)
+
+        P1.3: 注入 episode_spec + season_context 让 Critic 知道:
+        - 本集预期 hook_type (LLM 输出 hook.type 不匹配 → cuteness 维度扣分)
+        - 本集预期 satisfaction_types + intensity (LLM 输出不匹配 → cuteness 扣分)
+        - 当前 stage (考验是否遵循 stage_adaptations 配比)
+        - next_episode_seed (LLM 末 3s 是否交付这个钩子)
+        """
+        ctx: dict[str, Any] = {
+            "character_protagonist": characters["protagonist"],
+            "character_apartment": characters["apartment"],
+            "character_youkei": characters["youkei"],
+            # P1.3: 总是传 episode_spec (None 则表示 未提供)
+            "episode_spec": episode_spec or {},
+            "season_context": season_context or {},
+            "hook_verifier_keywords": (season_context or {}).get("hook_verifier_keywords", []),
+        }
+
         base_system = render_prompt_template(
             "critic_rubric.yaml",
-            {
-                "character_protagonist": characters["protagonist"],
-                "character_apartment": characters["apartment"],
-                "character_youkei": characters["youkei"],
-            },
+            ctx,
             field="system_prompt",
         )
 
@@ -201,20 +231,56 @@ total_score = humor*3 + cuteness*3 + continuity*2 + rhythm*1 + red_line*1
 """
         return base_system + schema_desc
 
-    def _build_user_prompt(self, script: EpisodeScript) -> str:
-        """构建 Critic user prompt (本集剧本)"""
+    def _build_user_prompt(
+        self,
+        script: EpisodeScript,
+        episode_spec: dict[str, Any] | None = None,  # P1.3
+        season_context: dict[str, Any] | None = None,
+    ) -> str:
+        """构建 Critic user prompt (本集剧本)
+
+        P1.3: 注入 episode_spec 让 Critic 知道本集预期, 验证 LLM 输出是否兑现
+        """
         script_json = script.model_dump_json(indent=2, exclude_none=True)
+
+        # P1.3: 本集预期上下文 (供 Critic 对比)
+        spec_block = ""
+        if episode_spec:
+            spec_lines = [
+                f"- **本集预期 hook.type**: `{episode_spec.get('hook_type', '?')}` / `{episode_spec.get('hook_subtype', '?')}`",
+                f"- **本集预期 hook_text**: \"{episode_spec.get('hook_text_template', '')}\"",
+                f"- **本集预期 satisfaction_types**: {episode_spec.get('satisfaction_types', [])} (强度 {episode_spec.get('satisfaction_intensity', '?')})",
+                f"- **本集预期 key_moments**: {'; '.join(episode_spec.get('key_moments', []))}",
+                f"- **本集预期 rhythm_notes**: {episode_spec.get('rhythm_notes', '')}",
+                f"- **本集预期 next_episode_seed**: {episode_spec.get('next_episode_seed', '')}",
+                f"- **本集预期 stage**: {episode_spec.get('stage', '')}",
+            ]
+            spec_block = "\n".join(spec_lines)
+        else:
+            spec_block = "(P1.3 未提供 episode_spec, Critic 仅依剧本主观评分)"
+
         return f"""## 待评审剧本 EP{script.ep} 《{script.title}》
 
 ```json
 {script_json}
 ```
 
+## 📋 本集预期 (从 season-XX.json 注入, P1.3)
+
+{spec_block}
+
+## 🔍 一致性检查要求 (P1.3)
+- 剧本 `hook.type` 是否与预期一致? **不一致 → cuteness 维度扣 1-2 分**
+- 剧本 `hook.text` 是否兑现预期 hook_text_template 的画面/字幕/拟声词? **未兑现 → cuteness 扣 2-3 分**
+- 剧本 `satisfaction_types` 是否覆盖预期列表的 ≥ 50%? **覆盖率低 → cuteness 扣 1-2 分**
+- 剧本末 3s (最后一 shot) 是否提供 next_episode_seed 的画面? **未交付 → continuity 扣 1-2 分**
+- shot 数 / 总时长 / emotion_peak 数 是否符合 rhythm_notes? **偏离 → rhythm 扣 1-2 分**
+
 请按 system prompt 中 5 个视角的评分标准逐一打分, 输出严格 JSON。
 - humor: 冲突密度 + 反转设计 + 笑点自然度 + 节奏曲线
-- cuteness: YouKei 戏份 + 招牌动作 + 反差萌 + 拟声词萌感
-- continuity: 上集钩子回收 + 时间线连贯 + 角色位置 + 本集钩子交付
-- rhythm: shot 数 + 时长 + 情绪波峰位置
+- cuteness: YouKei 戏份 + 招牌动作 + 反差萌 + 拟声词萌感 + **本集钩子兑现**
+- continuity: 上集钩子回收 + 时间线连贯 + 角色位置 + 本集钩子交付 + **next_episode_seed 可视化**
+- rhythm: shot 数 + 时长 + 情绪波峰位置 + **rhythm_notes 遵循度**
 - red_line: 19 条红线 (8+6+5), 任一违反 → score=0
 
 输出 JSON, 不要解释。"""

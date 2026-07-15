@@ -134,6 +134,9 @@ class Writer:
         characters = self._load_characters()
         references = self._load_relevant_references(ep_spec)
 
+        # 1.5 构造完整 season_context (P1.2: 注入 stage/quality/钩子关键词 等)
+        season_context = self._build_season_context(season_data, ep_data)
+
         # 2. 渲染 user prompt (system prompt 是固定的, 渲染一次即可)
         user_prompt = render_prompt_template(
             "writer.yaml",
@@ -142,11 +145,8 @@ class Writer:
                 "character_protagonist": characters["protagonist"],
                 "character_youkei": characters["youkei"],
                 "character_apartment": characters["apartment"],
-                "season_context": {
-                    "season_id": season_id,
-                    "stage_distribution": season_data["stage_distribution"],
-                    "quality_targets": season_data["quality_targets"],
-                },
+                "season_context": season_context,
+                "pct": round(ep / season_data["total_episodes"] * 100),
                 "references_excerpt": references,
             },
             field="user_prompt_template",
@@ -158,11 +158,8 @@ class Writer:
                 "character_youkei": characters["youkei"],
                 "character_apartment": characters["apartment"],
                 "episode_spec": ep_data,  # P9 fix: writer.yaml system_prompt 模板 line 80-151 引用了 episode_spec (干跑隐藏 bug)
-                "season_context": {       # system_prompt 模板也可能引用 (如集阶段)
-                    "season_id": season_id,
-                    "stage_distribution": season_data["stage_distribution"],
-                    "quality_targets": season_data["quality_targets"],
-                },
+                "season_context": season_context,  # P1.2: system_prompt 现在引用 stage/quality_targets
+                "pct": round(ep / season_data["total_episodes"] * 100),
             },
             field="system_prompt",
         )
@@ -258,6 +255,58 @@ class Writer:
             return make_episode_script_from_json(data)
         except Exception as e:
             raise LLMError(f"EpisodeScript schema 校验失败: {e}", response_body=text[:500]) from e
+
+    def _build_season_context(
+        self,
+        season_data: dict[str, Any],
+        ep_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """P1.2: 从 season_data + satisfaction_matrix.json + hook_distribution.json 构造完整上下文
+
+        字段:
+        - season_id, title, theme, total_episodes
+        - stage_description: 从 stage_distribution[ep.stage].description
+        - stage_intensity: 从 stage_distribution[ep.stage].rhythm_intensity
+        - stage_adaptations: 从 satisfaction_matrix.json validation_rules.stage_adaptations[ep.stage]
+        - hook_verifier_keywords: 从 hook_distribution.json hook_types[ep.hook_type].verifier_keywords
+        - quality_targets: 从 season_data.quality_targets
+        - hook_strength_min: 从 quality_targets.hook_strength_min
+        """
+        stage = ep_data.get("stage", "")
+        stage_dist = season_data.get("stage_distribution", {}).get(stage, {})
+        hook_type = ep_data.get("hook_type", "")
+
+        # 加载 satisfaction_matrix.json + hook_distribution.json (P1.2 新增)
+        stage_adaptations = ""
+        hook_keywords: list[str] = []
+        try:
+            sm_path = ROOT / "prompts" / "satisfaction_matrix.json"
+            sm = json.loads(sm_path.read_text(encoding="utf-8"))
+            stage_adaptations = sm["validation_rules"]["stage_adaptations"].get(stage, {}).get("配比", "")
+        except Exception:
+            pass
+        try:
+            hd_path = ROOT / "prompts" / "hook_distribution.json"
+            hd = json.loads(hd_path.read_text(encoding="utf-8"))
+            hook_keywords = hd["hook_types"].get(hook_type, {}).get("verifier_keywords", [])
+        except Exception:
+            pass
+
+        quality = season_data.get("quality_targets", {})
+
+        return {
+            "season_id": season_data.get("season_no", 1),
+            "title": season_data.get("title", ""),
+            "theme": season_data.get("theme", ""),
+            "total_episodes": season_data.get("total_episodes", 12),
+            "stage_distribution": season_data.get("stage_distribution", {}),
+            "stage_description": stage_dist.get("description", ""),
+            "stage_intensity": stage_dist.get("rhythm_intensity", ""),
+            "stage_adaptations": stage_adaptations,
+            "hook_verifier_keywords": hook_keywords,
+            "quality_targets": quality,
+            "hook_strength_min": quality.get("hook_strength_min", "中等"),
+        }
 
     def _load_season(self, season_id: int) -> dict[str, Any]:
         """加载 season-XX.json"""

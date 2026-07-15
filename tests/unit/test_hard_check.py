@@ -51,7 +51,7 @@ def apartment_card() -> dict:
 def _make_shot(
     shot_no: int,
     *,
-    action: str = "主人搬箱子",
+    action: str = "主人搬箱子, YouKei 陪伴在身边, 温暖",
     voiceover: str = "",
     subtitle: str = "我以为我在搬家",
     scene: str = "客厅",
@@ -474,3 +474,152 @@ class TestFactory:
         r = checker.run()
         assert r.verdict == "PASS"
         assert r.should_publish is True
+
+
+# ===== P1.5: 跨集钩子自动加载 + 三档判定 =====
+class TestP15CrossEpisodeHook:
+    """P1.5: make_default_checker 自动从 memory_bank.json 加载 prev_script
+    + _check_hook_continuity 三档判定 (PASS / 部分命中 = WARNING / 全未命中 = FAIL)
+    """
+
+    def test_EP01_auto_no_prev(self, clean_script):
+        """P1.5: EP01 自动加载 prev → None (没上一集), 不校验回收"""
+        checker = make_default_checker(clean_script)
+        assert checker.prev_script is None
+        # EP01 没有 prev_script, 不报 previous_seed_not_delivered
+        r = checker.run()
+        viol = [v for v in r.violations if v.constraint_id == "previous_seed_not_delivered"]
+        assert viol == []
+
+    def _make_prev_stub(self, next_seed: str = "EP2 测试"):
+        """工厂: 构造 minimal prev_script stub (满足 EpisodeScript 校验)"""
+        from src.types import HookSpec, EpisodeScript, SelfCheck, Shot
+
+        minimal_shot_peak = Shot(
+            shot_no=1, time_range="0-20s", duration_s=20,
+            scene="客厅", camera="固定",
+            action="上坤与 YouKei", voiceover="", subtitle="",
+            emotion_peak=True,
+        )
+        minimal_shot_plain = Shot(
+            shot_no=2, time_range="20-40s", duration_s=20,
+            scene="客厅", camera="固定",
+            action="", voiceover="", subtitle="",
+        )
+        return EpisodeScript(
+            ep=1, title="EP1 stub", logline="stub", duration_target_s=60,
+            shots=[minimal_shot_peak, minimal_shot_plain, minimal_shot_plain],
+            hook=HookSpec(type="悬念钩", subtype="", text=""),
+            satisfaction_types=["悬念揭秘"],
+            next_episode_seed=next_seed,
+            rhythm_notes="",
+            self_check=SelfCheck(
+                shot_count_ok=True, duration_in_range=True,
+                emotion_peaks_count=1, hook_present=True, forbidden_words_check=True,
+            ),
+        )
+
+    def test_EP02_auto_load_prev_from_memory_bank(self, monkeypatch):
+        """P1.5: EP02 自动从 memory_bank.json 加载 EP1 prev_script (mock 自动加载函数)"""
+        from src import hard_check
+        prev_stub = self._make_prev_stub(next_seed="EP2 测试, YouKei 凌晨 3 点开始闹腾")
+        monkeypatch.setattr(
+            hard_check, "_load_prev_script_from_memory_bank",
+            lambda ep, root: prev_stub if ep == 2 else None,
+        )
+
+        ep2 = _make_clean_episode(
+            ep=2, title="EP2 测试, YouKei 凌晨 3 点开始闹腾",
+            hook_text="凌晨 3 点 YouKei 开始闹腾", next_seed="EP3 next",
+        )
+        checker = make_default_checker(ep2)
+
+        # 验证 prev 自动加载
+        assert checker.prev_script is not None
+        assert checker.prev_script.ep == 1
+        assert "凌晨" in checker.prev_script.next_episode_seed
+
+        # 关键词命中 → 不报 violation
+        r = checker.run()
+        viol = [v for v in r.violations if v.constraint_id == "previous_seed_not_delivered"]
+        assert viol == []
+
+    def test_EP02_prev_seed_partial_hit_warning(self, monkeypatch):
+        """P1.5: 部分命中 → WARNING (不阻塞, 不报 violation)"""
+        from src import hard_check
+        prev_stub = self._make_prev_stub(next_seed="EP2 深夜书房 键盘 鼠标")
+        monkeypatch.setattr(
+            hard_check, "_load_prev_script_from_memory_bank",
+            lambda ep, root: prev_stub if ep == 2 else None,
+        )
+
+        ep2 = _make_clean_episode(
+            ep=2, title="EP2 书房", hook_text="深夜书房", next_seed="EP3",
+        )
+        # shots 含 2/3 关键词 (深夜 / 书房), 缺 1 个 (键盘 / 鼠标)
+        for s in ep2.shots:
+            s.action = "深夜书房主人"
+
+        checker = make_default_checker(ep2)
+        assert checker.prev_script is not None
+        r = checker.run()
+        viol = [v for v in r.violations if v.constraint_id == "previous_seed_not_delivered"]
+        assert viol == []  # 部分命中不阻塞
+
+    def test_EP02_prev_seed_zero_hit_fail(self, monkeypatch):
+        """P1.5: 全部未命中 → FAIL (阻塞)"""
+        from src import hard_check
+        prev_stub = self._make_prev_stub(next_seed="EP2 阳台 鸟笼 阳台征服")
+        monkeypatch.setattr(
+            hard_check, "_load_prev_script_from_memory_bank",
+            lambda ep, root: prev_stub if ep == 2 else None,
+        )
+
+        ep2 = _make_clean_episode(
+            ep=2, title="EP2 厨房", hook_text="厨房场景", next_seed="EP3",
+        )
+        # shots 不含 "阳台" / "鸟笼" / "阳台征服"
+        for s in ep2.shots:
+            s.action = "厨房切菜"
+
+        checker = make_default_checker(ep2)
+        assert checker.prev_script is not None
+        r = checker.run()
+        viol = [v for v in r.violations if v.constraint_id == "previous_seed_not_delivered"]
+        assert len(viol) == 1
+        assert viol[0].severity.value == "FAIL"
+        # evidence 应列出未命中关键词
+        assert "阳台" in viol[0].evidence or "鸟笼" in viol[0].evidence
+
+    def test_load_prev_script_helper_directly(self, tmp_path):
+        """P1.5: _load_prev_script_from_memory_bank 单元测试"""
+        import json
+        from src.hard_check import _load_prev_script_from_memory_bank
+        from pathlib import Path
+
+        # 没有 memory_bank → None
+        result = _load_prev_script_from_memory_bank(2, tmp_path)
+        assert result is None
+
+        # EP1 没有 prev → None
+        tmp_path.joinpath("data").mkdir()
+        bank_path = tmp_path / "data" / "state" / "memory_bank.json"
+        bank_path.parent.mkdir(parents=True, exist_ok=True)
+        bank_path.write_text(json.dumps({
+            "season_id": 1,
+            "episodes": [{"ep": 1, "title": "EP1", "hook_seed_for_next": "EP2 测试"}],
+        }), encoding="utf-8")
+
+        result_ep1 = _load_prev_script_from_memory_bank(1, tmp_path)
+        assert result_ep1 is None
+
+        # EP2 加载 EP1
+        result_ep2 = _load_prev_script_from_memory_bank(2, tmp_path)
+        assert result_ep2 is not None
+        assert result_ep2.ep == 1
+        assert result_ep2.next_episode_seed == "EP2 测试"
+        assert "客厅" in result_ep2.shots[0].scene
+
+        # EP3 加载 EP2 (bank 没有 EP2) → None
+        result_ep3 = _load_prev_script_from_memory_bank(3, tmp_path)
+        assert result_ep3 is None

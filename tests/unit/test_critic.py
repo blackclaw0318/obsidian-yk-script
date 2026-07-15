@@ -126,3 +126,122 @@ class TestSelectBest:
         best, verdicts = critic.select_best([ep1])
         assert best is None
         assert verdicts == {}
+
+
+# ===== P1.3 — Critic 接收 episode_spec + season_context =====
+
+class TestP13CriticAcceptsSpec:
+    """P1.3: critic 注入 episode_spec + season_context"""
+
+    def test_critique_episode_with_spec(self):
+        """critique_episode(script, ep_spec, season_ctx) 应渲染成功 (mock LLM)"""
+        from unittest.mock import MagicMock
+        from src.critic import Critic
+        from src.types import CriticVerdict, Verdict
+        from tests.unit.test_types import make_episode
+
+        # Mock LLM 返回合法 CriticVerdict JSON
+        mock_client = MagicMock()
+        mock_client.messages_create.return_value = MagicMock(
+            text=json.dumps({
+                "episode_id": 1,
+                "perspectives": [
+                    {"id": "humor", "score": 4, "reason": "ok", "improvement": "无"},
+                    {"id": "cuteness", "score": 4, "reason": "ok", "improvement": "无"},
+                    {"id": "continuity", "score": 4, "reason": "ok", "improvement": "无"},
+                    {"id": "rhythm", "score": 4, "reason": "ok", "improvement": "无"},
+                    {"id": "red_line", "score": 5, "reason": "ok", "improvement": "无"},
+                ],
+                "total_score": 41,
+                "verdict": "PASS",
+                "feedback": "ok",
+                "should_rewrite": False,
+            }),
+            duration_ms=100,
+            input_tokens=100,
+            output_tokens=50,
+            stop_reason="end_turn",
+        )
+
+        critic = Critic(mock_client)
+        ep = make_episode(ep=1, title="📦 搬家日")
+
+        # P1.3: 注入 ep_spec + season_ctx
+        ep_spec = {
+            "ep": 1, "title": "📦 搬家日",
+            "hook_type": "悬念钩", "hook_subtype": "来者悬念",
+            "hook_text_template": "客厅尽头那个最大的纸箱, 突然动了一下",
+            "satisfaction_types": ["情感爆发"], "satisfaction_intensity": "★★★",
+            "key_moments": ["0:05 钻纸箱", "0:30 找猫", "0:50 探头"],
+            "rhythm_notes": "前 5s 必现冲突",
+            "next_episode_seed": "EP02 第一夜",
+            "stage": "起势段",
+        }
+        season_ctx = {
+            "season_id": 1, "title": "上坤 × YouKei", "theme": "适应",
+            "total_episodes": 12,
+            "stage_description": "建立核心",
+            "stage_intensity": "★★",
+            "stage_adaptations": "情感爆发 100%",
+            "hook_verifier_keywords": ["?", "突然"],
+            "quality_targets": {"shot_count": "3-8", "duration_target_s": 60},
+            "hook_strength_min": "中等",
+        }
+
+        result = critic.critique_episode(ep, ep_spec, season_ctx)
+        assert result.error is None, f"Critic 失败: {result.error}"
+        assert result.verdict is not None
+        assert result.verdict.total_score == 41
+        assert result.verdict.verdict == Verdict.PASS
+
+    def test_system_prompt_includes_episode_spec(self):
+        """system_prompt 渲染结果应包含本集预期字段 (无 LLM 调用)"""
+        import json
+        from src.critic import Critic
+
+        mock_client = MagicMock()
+        critic = Critic(mock_client)
+
+        rubric = critic._load_rubric()
+        characters = critic._load_characters()
+        ep_spec = {
+            "ep": 1, "title": "📦 搬家日",
+            "hook_type": "悬念钩", "hook_subtype": "来者悬念",
+            "hook_text_template": "客厅尽头那个最大的纸箱, 突然动了一下",
+            "satisfaction_types": ["情感爆发"], "satisfaction_intensity": "★★★",
+            "key_moments": ["0:05"], "rhythm_notes": "前 5s 必现冲突",
+            "next_episode_seed": "EP02", "stage": "起势段",
+        }
+        season_ctx = {
+            "stage_intensity": "★★",
+            "hook_verifier_keywords": ["?", "突然"],
+        }
+
+        sp = critic._build_system_prompt(rubric, characters, ep_spec, season_ctx)
+        # 关键字段
+        assert "本集预期" in sp
+        assert "悬念钩" in sp
+        assert "客厅尽头那个最大的纸箱" in sp
+        assert "情感爆发" in sp
+        assert "?" in sp or "突然" in sp  # hook_verifier_keywords
+        assert "一致性检查" in sp
+
+    def test_system_prompt_works_without_episode_spec(self):
+        """向后兼容: 不传 ep_spec 也能渲染"""
+        from unittest.mock import MagicMock
+        from src.critic import Critic
+
+        mock_client = MagicMock()
+        critic = Critic(mock_client)
+
+        rubric = critic._load_rubric()
+        characters = critic._load_characters()
+
+        sp = critic._build_system_prompt(rubric, characters, None, None)
+        # 不报错 + 不含"本集预期"
+        assert len(sp) > 500
+        assert "未提供 episode_spec" in sp or "P1.3" in sp
+
+
+# Helper for json import (上面用了 json)
+import json

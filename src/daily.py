@@ -385,8 +385,26 @@ def main(
         _alert_failure(f"EP{target_ep}", ["Writer 全部失败"])
         return 1
 
+    # 2.5 P1.3: 加载本集 episode_spec + season_context 供 Critic 用
+    from src.outline_fetcher import fetch_season_with_fallback as _fetch_season
+    ep_spec_for_critic: dict | None = None
+    season_ctx_for_critic: dict | None = None
+    try:
+        _season, _src = _fetch_season(season_id)
+        _ep = next((e for e in _season.get("episodes", []) if e.get("ep") == target_ep), None)
+        if _ep is not None:
+            ep_spec_for_critic = _ep
+            # 复用 writer._build_season_context 的逻辑
+            from src.writer import Writer as _W
+            class _StubClient:
+                pass
+            season_ctx_for_critic = _W(_StubClient())._build_season_context(_season, _ep)
+            logger.info(f"P1.3: Critic 注入 EP{target_ep} spec (hook={ep_spec_for_critic.get('hook_type')})")
+    except Exception as _e:
+        logger.warning(f"P1.3: 加载 season_context 给 Critic 失败 ({_e}), Critic 仅主观评分")
+
     # 3. Critic → 5 维评分 → 选最优
-    best_script = _run_critic(candidates, dry_run)
+    best_script = _run_critic(candidates, dry_run, ep_spec_for_critic, season_ctx_for_critic)
     if best_script is None:
         _alert_failure(f"EP{target_ep}", ["Critic 评审全部失败"])
         return 1
@@ -531,6 +549,8 @@ def _run_writer(
 def _run_critic(
     candidates: list[EpisodeScript],
     dry_run: bool,
+    episode_spec: dict | None = None,  # P1.3
+    season_context: dict | None = None,
 ) -> EpisodeScript | None:
     """Stage 3: Critic 评审选最优
 
@@ -542,7 +562,7 @@ def _run_critic(
 
     try:
         critic = make_default_critic()
-        best, verdicts = critic.select_best(candidates)
+        best, verdicts = critic.select_best(candidates, episode_spec, season_context)
         if best is None:
             logger.error("Critic 全部评审失败")
             return None
