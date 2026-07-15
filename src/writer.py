@@ -108,12 +108,16 @@ class Writer:
         self,
         ep: int,
         season_id: int = 1,
+        retry_keywords: list[str] | None = None,  # P1.7-D: 上一轮缺的关键词, 本轮必须嵌
+        retry_round: int = 1,  # P1.7-D: 重试轮次 (1=首次, 2/3=重试), 用于 prompt 中提示
     ) -> WriterResult:
         """生成 N 个候选 EpisodeScript
 
         Args:
             ep: 集号 (1-12)
             season_id: 季号 (默认 1)
+            retry_keywords: P1.7-D 注入 (上一轮 hard_check 拦截的缺关键词)
+            retry_round: P1.7-D 重试轮次 (1=首次, 2=重试1, 3=重试2)
 
         Returns:
             WriterResult: 含 candidates / successful / failed
@@ -148,6 +152,8 @@ class Writer:
                 "season_context": season_context,
                 "pct": round(ep / season_data["total_episodes"] * 100),
                 "references_excerpt": references,
+                "retry_keywords": retry_keywords or [],  # P1.7-D
+                "retry_round": retry_round,  # P1.7-D
             },
             field="user_prompt_template",
         )
@@ -160,6 +166,8 @@ class Writer:
                 "episode_spec": ep_data,  # P9 fix: writer.yaml system_prompt 模板 line 80-151 引用了 episode_spec (干跑隐藏 bug)
                 "season_context": season_context,  # P1.2: system_prompt 现在引用 stage/quality_targets
                 "pct": round(ep / season_data["total_episodes"] * 100),
+                "retry_keywords": retry_keywords or [],  # P1.7-D
+                "retry_round": retry_round,  # P1.7-D
             },
             field="system_prompt",
         )
@@ -269,20 +277,30 @@ class Writer:
         - stage_intensity: 从 stage_distribution[ep.stage].rhythm_intensity
         - stage_adaptations: 从 satisfaction_matrix.json validation_rules.stage_adaptations[ep.stage]
         - hook_verifier_keywords: 从 hook_distribution.json hook_types[ep.hook_type].verifier_keywords
+        - satisfaction_verifier_keywords: 从 satisfaction_matrix.json satisfaction_types[情感爆发].verifier_keywords (P1.7-B)
         - quality_targets: 从 season_data.quality_targets
         - hook_strength_min: 从 quality_targets.hook_strength_min
         """
         stage = ep_data.get("stage", "")
         stage_dist = season_data.get("stage_distribution", {}).get(stage, {})
         hook_type = ep_data.get("hook_type", "")
+        sat_types = ep_data.get("satisfaction_types", [])
 
-        # 加载 satisfaction_matrix.json + hook_distribution.json (P1.2 新增)
+        # 加载 satisfaction_matrix.json + hook_distribution.json (P1.2 新增, P1.7-B 扩展)
         stage_adaptations = ""
         hook_keywords: list[str] = []
+        satisfaction_keywords: list[str] = []
         try:
             sm_path = ROOT / "prompts" / "satisfaction_matrix.json"
             sm = json.loads(sm_path.read_text(encoding="utf-8"))
             stage_adaptations = sm["validation_rules"]["stage_adaptations"].get(stage, {}).get("配比", "")
+            # P1.7-B: 情感爆发类必有 verifier_keywords, 提前加载进 context 让 LLM 看到
+            for sat in sat_types:
+                kws = sm.get("satisfaction_types", {}).get(sat, {}).get("verifier_keywords", [])
+                satisfaction_keywords.extend(kws)
+            # 去重保序
+            seen: set[str] = set()
+            satisfaction_keywords = [k for k in satisfaction_keywords if not (k in seen or seen.add(k))]
         except Exception:
             pass
         try:
@@ -304,6 +322,7 @@ class Writer:
             "stage_intensity": stage_dist.get("rhythm_intensity", ""),
             "stage_adaptations": stage_adaptations,
             "hook_verifier_keywords": hook_keywords,
+            "satisfaction_verifier_keywords": satisfaction_keywords,  # P1.7-B 新增
             "quality_targets": quality,
             "hook_strength_min": quality.get("hook_strength_min", "中等"),
         }

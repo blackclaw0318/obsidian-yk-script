@@ -80,6 +80,7 @@ def season_context() -> dict:
         "stage_intensity": "★★",
         "stage_adaptations": "情感爆发 100% (建立核心情感)",
         "hook_verifier_keywords": ["?", "突然", "下一秒"],
+        "satisfaction_verifier_keywords": ["没想到", "原来", "突然"],  # P1.7-B: 新增
         "quality_targets": {
             "shot_count": "3-8 个",
             "duration_target_s": 60,

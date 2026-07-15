@@ -61,4 +61,3 @@ Thumbs.db
 !docs/
 !data/characters/                # 角色卡可在 GitHub web UI 编辑
 !data/seasons/                   # 大纲可在 GitHub web UI 编辑 (P5 决策)
-!data/knowledge/                 # 8 份 references 是 fork 资源,必须入库

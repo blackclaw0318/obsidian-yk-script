@@ -332,6 +332,39 @@ class _BackupFailureMarker:
         self.pushed_files: list[str] = []
 
 
+# ===== P1.7-D: P1.4 软约束 → 关键词提取 =====
+import re as _re_p17d
+
+
+def _extract_p14_missing_keywords(violations: list) -> list[str]:
+    """P1.7-D: 从 P1.4 软约束 violations 提取缺失关键词列表
+
+    解析 fix_suggestion 里的关键词:
+    - hook_verifier_keywords_missing_p14: "末 shot 字幕/动作/voiceover 加 ≥ 1 个关键词 (推荐: kw1/kw2/kw3)"
+    - satisfaction_coverage_low_p14:     "覆盖不足, 补 1 个预期类型: ['情感爆发']"
+    - emotion_keywords_missing_p14:      "字幕/voiceover 加 ≥ 1 个关键词: ['没想到']"
+    """
+    missing: list[str] = []
+    for v in violations:
+        text = v.fix_suggestion or ""
+        if not text:
+            continue
+        # 策略 1: 从 list literal ['kw1', 'kw2'] / ["kw1", "kw2"] 中提取
+        list_lits = _re_p17d.findall(r"['\"]([^'\"]{1,30})['\"]", text)
+        if list_lits:
+            missing.extend(k.strip() for k in list_lits if k.strip())
+            continue
+        # 策略 2: 从 "推荐: kw1/kw2/kw3" / "预期: kw1, kw2" / "关键词: kw1" 中提取
+        m = _re_p17d.search(r"(?:推荐|关键词|预期)[:：]\s*([^\n\r。\)]+)", text)
+        if m:
+            chunk = m.group(1)
+            kws = [k.strip() for k in _re_p17d.split(r"[/、,，\s]+", chunk) if k.strip()]
+            missing.extend(kws)
+    # 去重保序
+    seen: set[str] = set()
+    return [k for k in missing if not (k in seen or seen.add(k))]
+
+
 def _count_words(md: str) -> int:
     """中文字数计数 (粗估, 按 '字符数 - 标点数')"""
     text = md
@@ -380,11 +413,6 @@ def main(
     mm = MemoryManager()
 
     # 2. Writer → 3 候选
-    candidates = _run_writer(target_ep, season_id, dry_run)
-    if not candidates:
-        _alert_failure(f"EP{target_ep}", ["Writer 全部失败"])
-        return 1
-
     # 2.5 P1.3: 加载本集 episode_spec + season_context 供 Critic 用
     from src.outline_fetcher import fetch_season_with_fallback as _fetch_season
     ep_spec_for_critic: dict | None = None
@@ -403,18 +431,99 @@ def main(
     except Exception as _e:
         logger.warning(f"P1.3: 加载 season_context 给 Critic 失败 ({_e}), Critic 仅主观评分")
 
-    # 3. Critic → 5 维评分 → 选最优
-    best_script = _run_critic(candidates, dry_run, ep_spec_for_critic, season_ctx_for_critic)
-    if best_script is None:
-        _alert_failure(f"EP{target_ep}", ["Critic 评审全部失败"])
-        return 1
+    # 3. + 4. + P1.7-D: Writer → Critic → HardCheck 加重试循环
+    # P1.7-D 机制: P1.4 软约束 (钩子关键词缺失/爽点覆盖不足/情感关键词缺失) 可重试,
+    #               其他硬约束不重试 (直接 alert 退出)。
+    # 总轮次: 1 首次 + 2 重试 = 3 轮机会
+    P14_RETRYABLE = {
+        "hook_verifier_keywords_missing_p14",
+        "satisfaction_coverage_low_p14",
+        "emotion_keywords_missing_p14",
+    }
+    P14_MAX_RETRY = 3  # 总轮次 (1 首次 + 2 重试)
 
-    # 4. HardCheck → 19 红线 + 5 结构
-    hc_result = _run_hard_check(best_script)
-    if hc_result is None or not hc_result.should_publish:
-        violations = hc_result.violations if hc_result else []
-        errors = [f"{v.constraint_id}: {v.evidence}" for v in violations]
-        _alert_failure(f"EP{target_ep} '{best_script.title}'", errors or ["HardCheck 失败"])
+    best_script: EpisodeScript | None = None
+    hc_result: HardCheckResult | None = None
+    missing_keywords: list[str] = []
+
+    for retry_round in range(1, P14_MAX_RETRY + 1):
+        # 3.0 跑 writer (首次 or 重试)
+        if retry_round == 1:
+            candidates = _run_writer(target_ep, season_id, dry_run)
+            if not candidates:
+                _alert_failure(f"EP{target_ep}", ["Writer 全部失败"])
+                return 1
+        else:
+            # P1.7-D: 重试 — 拿缺关键词, 重建 prompt 调 writer
+            logger.info(
+                f"P1.7-D: 第 {retry_round}/{P14_MAX_RETRY} 轮重试, 缺关键词={missing_keywords}",
+            )
+            from src.writer import make_default_writer as _mk_w_retry
+            try:
+                _writer = _mk_w_retry()
+                _wresult = _writer.generate_episode_candidates(
+                    target_ep,
+                    season_id,
+                    retry_keywords=missing_keywords,
+                    retry_round=retry_round,
+                )
+                candidates = [c.script for c in _wresult.successful if c.script is not None]
+            except Exception as e:
+                logger.warning(f"P1.7-D: 第 {retry_round} 轮 Writer 异常: {e}")
+                candidates = []
+            if not candidates:
+                logger.warning(f"P1.7-D: 第 {retry_round} 轮 Writer 全失败, 进入下一轮")
+                continue
+
+        # 3. Critic → 5 维评分 → 选最优
+        best_script = _run_critic(candidates, dry_run, ep_spec_for_critic, season_ctx_for_critic)
+        if best_script is None:
+            if retry_round == 1:
+                _alert_failure(f"EP{target_ep}", ["Critic 评审全部失败"])
+                return 1
+            logger.warning(f"P1.7-D: 第 {retry_round} 轮 Critic 全失败, 进入下一轮")
+            continue
+
+        # 4. HardCheck → 19 红线 + 5 结构 + 2 P1.4
+        hc_result = _run_hard_check(best_script)
+        if hc_result is None:
+            if retry_round == 1:
+                _alert_failure(f"EP{target_ep} '{best_script.title}'", ["HardCheck 异常"])
+                return 1
+            continue
+
+        if hc_result.should_publish:
+            logger.info(
+                f"P1.7-D: 第 {retry_round} 轮 HardCheck PASS "
+                f"(constraints {hc_result.passed_constraints}/{hc_result.total_constraints})",
+            )
+            break
+
+        # 失败 → 找 P1.4 软约束
+        p14_violations = [v for v in hc_result.violations if v.constraint_id in P14_RETRYABLE]
+        if not p14_violations or retry_round == P14_MAX_RETRY:
+            # 非 P1.4 软约束 OR 已到最大重试 → 放弃
+            errors = [f"{v.constraint_id}: {v.evidence}" for v in hc_result.violations]
+            _alert_failure(f"EP{target_ep} '{best_script.title}'", errors or ["HardCheck 失败"])
+            return 1
+
+        # P1.7-D: 解析缺失关键词
+        missing_keywords = _extract_p14_missing_keywords(p14_violations)
+        if not missing_keywords:
+            # 解析不到, 放弃
+            errors = [f"{v.constraint_id}: {v.evidence}" for v in p14_violations]
+            _alert_failure(f"EP{target_ep} '{best_script.title}'", errors)
+            return 1
+        logger.warning(
+            f"P1.7-D: 第 {retry_round} 轮 P1.4 软约束未过, 缺关键词={missing_keywords}, 重试中...",
+        )
+    else:
+        # for-else: 未 break 说明 3 轮都失败
+        errors = [f"{v.constraint_id}: {v.evidence}" for v in (hc_result.violations if hc_result else [])]
+        _alert_failure(
+            f"EP{target_ep} '{best_script.title if best_script else ''}'",
+            errors or ["P1.7-D 重试后仍失败"],
+        )
         return 1
 
     # 5. Memory → 跨集硬约束 + 写入

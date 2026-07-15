@@ -135,6 +135,26 @@ system_prompt: |
   - ❌ 不要写超过 90 秒 (手机用户会划走)
   - ❌ 不要在 EP01-EP11 写"圆满结局" → 必须留钩子
 
+  ## 🔴 硬规则 (P1.7-B 强化: 关键词命中 = 必含)
+  本节违反 = P1.4 hard_check 直接 fail, 老板会重抓你
+  {% if season_context.hook_verifier_keywords | default([]) %}
+  - **本集钩子关键词 (hook_type={{ episode_spec.hook_type }})**: {{ season_context.hook_verifier_keywords | default([]) | join(' / ') }}
+  - **必含数量**: ≥ 1 个 (推荐 ≥ 2 个, 留余量防漏判)
+  - **嵌入位置 (按优先级)**: 末 shot 字幕 > 末 shot voiceover > hook.text
+  - **嵌入方式**: 关键词原样出现即可, 不要拆字/同义替换 (系统按子串严格匹配)
+  - **示例 (EP01 悬念钩)**: 末 shot subtitle 写 "突然门外响了一声" → 命中 "突然" ✅
+  - **反例**: 末 shot subtitle 写 "说时迟那时快" → 期望 "突然", 未命中 ❌
+  {% endif %}
+  {% if season_context.satisfaction_verifier_keywords | default([]) %}
+  - **爽点关键词 (情感爆发必含)**: {{ season_context.satisfaction_verifier_keywords | default([]) | join(' / ') }}
+  - 全文任一位置出现 ≥ 1 个, 推荐中后段 (45-85s) 嵌入
+  {% endif %}
+  {% if retry_keywords | default([]) %}
+  - **🔁 第 {{ retry_round }} 轮重试 (P1.7-D)**: 上次 LLM 输出**未命中**以下关键词
+  - **缺关键词列表**: {{ retry_keywords | default([]) | join(' / ') }}
+  - **本次必须从列表中选 ≥ 1 个嵌入字幕/voiceover**, 不能避开
+  {% endif %}
+
   ## ✅ 自检清单 (输出前必查)
   1. shot 数 = 3-8 个?
   2. 总时长 = 30-90 秒?
