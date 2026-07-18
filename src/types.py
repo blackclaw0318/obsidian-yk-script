@@ -149,6 +149,14 @@ class EpisodeScript(BaseModel):
             " 5 选是参考 (情感爆发/悬念揭秘/打脸复仇/逆袭翻盘/身份碾压), 不强制"
         ),
     )
+    key_moments: list[str] = Field(
+        default_factory=list,
+        description=(
+            "关键节拍 (本集期望的镜头画面节奏, 0:N 个)"
+            " 2026-07-18 hotfix: writer.yaml 模板用 StrictUndefined 访问会报错, 必须在 Pydantic 声明"
+            " 让 prompt_renderer 拿到字段而不是触发 UndefinedError"
+        ),
+    )
     next_episode_seed: str | None = Field(description="留给下一集的钩子")
     rhythm_notes: str = Field(default="", description="节奏提示")
     self_check: SelfCheck
