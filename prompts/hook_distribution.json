@@ -1,97 +1,103 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "_meta": {
-    "version": "0.3.0",
-    "purpose": "5 类钩子的判定标准 + 验证规则 (Layer 3 Hard Check 使用)",
+    "version": "0.4.0",
+    "purpose": "5 类钩子的判定标准 + 验证规则 (Layer 3 Hard Check 使用) — 适配《404室全员特工》伪装喜剧",
     "source": "data/knowledge/references/hook-design.md (fork 自 short-drama, MIT)",
     "config_source": "data/seasons/season-01.json hook_type_distribution_config",
-    "called_by": "src/hard_check.py + src/memory_constraints.py"
+    "called_by": "src/hard_check.py + src/memory_constraints.py",
+    "update_history": [
+      "v0.3.0 — 萌宠日常调 (情绪钩 30% 主导)",
+      "v0.4.0 — 2026-07-18 老板下发新 outline 后, 伪装喜剧调 (悬念钩 30% + 反转钩 25% + 危机钩 20% 主导)"
+    ]
   },
   "hook_types": {
     "情绪钩": {
       "definition": "用情感画面/拟人化心理让观众产生共鸣",
       "subtypes": {
-        "甜蜜中断": "温馨场景被突然打断 (例: 关灯后猫踩肚子)",
-        "心碎中断": "暖心瞬间被意外破坏 (例: 加班猫误发邮件)",
-        "反差反讽": "主人崩溃 vs 猫满足"
+        "甜蜜中断": "温馨场景被突然打断 (例: 上坤撸猫 Lerobot 突然打翻水杯)",
+        "心碎中断": "暖心瞬间被意外破坏 (例: Lerobot 假装故障把碗扫地上)",
+        "反差反讽": "主人崩溃 vs 猫/机械臂满足"
       },
       "indicators": [
-        "画面有强烈情感对比 (主人 vs 猫)",
+        "画面有强烈情感对比 (上坤 vs 三伪装者)",
         "字幕有'我以为...其实...'结构",
-        "拟声词密集 (喵/咔咔/噗嗤)"
+        "拟声词密集 (喵/嗡/咔嚓)"
       ],
-      "verifier_keywords": ["我以为", "原来", "突然", "居然", "结果"],
-      "config_distribution": 0.30,
-      "season01_usage": ["EP02 第一夜", "EP06 电脑前的观众"],
-      "design_template": "我闭上眼，背后传来轻轻的呼噜——突然，一只爪子踩在我肚子上"
+      "verifier_keywords": ["我以为", "原来", "突然", "居然", "结果", "好险"],
+      "config_distribution": 0.15,
+      "season01_usage": ["EP06 争宠大战", "EP08 外卖小哥看见了什么"],
+      "design_template": "我闭上眼，背后传来轻轻的呼噜——突然，一只爪子踩在我肚子上 (YouKi) 或 嗡——Lerobot 在客厅乱撞 (EP08 改装错觉)"
     },
     "悬念钩": {
       "definition": "制造'接下来会怎样?'的悬念",
       "subtypes": {
-        "来者悬念": "画面出现神秘对象 (例: 纸箱突然动了)",
-        "结果悬念": "动作进行中突然切走 (例: 猫洗澡到一半切书房)",
-        "时间悬念": "时间跳转 + 状态变化 (例: 3 小时前 vs 现在)"
+        "来者悬念": "画面出现神秘对象 (例: 快递柜弹出红色警告)",
+        "结果悬念": "动作进行中突然切走 (例: 师傅弯腰捡扳手切走)",
+        "身份悬念": "某人似乎识破了 (例: 旧搭档念暗号)",
+        "时间悬念": "时间跳转 + 状态变化 (例: 凌晨 3 点同秒三能量相撞)"
       },
       "indicators": [
         "画面有'未完成动作'被切走",
         "字幕有问号",
         "镜头在高潮前定格"
       ],
-      "verifier_keywords": ["?", "突然", "下一秒", "没想到", "究竟"],
-      "config_distribution": 0.25,
-      "season01_usage": ["EP01 搬家日", "EP05 洗澡大作战"],
-      "design_template": "客厅尽头那个最大的纸箱，突然动了一下"
+      "verifier_keywords": ["?", "突然", "下一秒", "没想到", "究竟", "怎么办"],
+      "config_distribution": 0.30,
+      "season01_usage": ["EP01 凌晨三点我家炸了", "EP02 快递站的高危包裹", "EP04 机械臂半夜在练武", "EP09 旧同事找上门", "EP12 新的访客"],
+      "design_template": "凌晨三点整, 404 室突然爆出一道蓝光, 整栋楼跳闸。/ 快递柜弹出红色警告: '您的包裹经检测含金属异常'"
     },
     "反转钩": {
       "definition": "观众预期被反转打脸",
       "subtypes": {
-        "动机反转": "观众以为是 A,实际是 B (例: 以为在玩,其实在藏)",
-        "身份反转": "观众以为是受害者,实际是赢家 (例: 过敏嫌弃→真香)",
-        "局势反转": "看似失败的瞬间,突然反转 (例: 拍照失败→猫配合)"
+        "动机反转": "观众以为是 A, 实际是 B (例: 以为黑客入侵, 实际是猫踩键盘)",
+        "身份反转": "观众以为是危险人物, 实际只是修水管的 (EP05)",
+        "局势反转": "看似失败的瞬间, 突然反转 (例: 上坤灭火器'呛'没时空裂缝 EP10)"
       },
       "indicators": [
         "字幕有'其实/原来/没想到'",
         "画面有 2 个时间点对比",
         "前后情绪反差极大"
       ],
-      "verifier_keywords": ["其实", "原来", "没想到", "结果", "没想到", "反而"],
-      "config_distribution": 0.20,
-      "season01_usage": ["EP04 厨房事变", "EP08 朋友来访", "EP10 摄影日"],
-      "design_template": "拍了 100 张，全是糊的；删掉相机的瞬间，YouKei 突然坐下看镜头"
+      "verifier_keywords": ["其实", "原来", "没想到", "结果", "反而", "原来是"],
+      "config_distribution": 0.25,
+      "season01_usage": ["EP03 黑客入侵是猫踩的", "EP05 修水管的闯进来了", "EP06 争宠大战", "EP08 外卖小哥看见了什么"],
+      "design_template": "上坤杀气腾腾冲出去, 发现 YouKi 正踩在他备用笔记本的键盘上, 爪子按得噼里啪啦 — '原来是你这只笨猫……'"
     },
     "信息钩": {
-      "definition": "提供新信息/证据,激发观众'求知欲'",
+      "definition": "提供新信息/证据, 激发观众'求知欲'",
       "subtypes": {
-        "证据揭露": "发现异常现象 (例: 猫对镜迷茫)",
-        "知识传递": "科普猫的本能/心理 (例: 猫为啥盯着窗外)",
-        "关系揭示": "揭示隐藏关系 (例: 主人和猫的真正情感)"
+        "证据揭露": "发现异常现象 (例: 师傅看到 Lerobot 战术动作)",
+        "知识传递": "科普战术/未来道具 (例: Lerobot 战术自检)",
+        "关系揭示": "揭示隐藏关系 (例: 三人各自身份几乎暴露)"
       },
       "indicators": [
         "画面有'第一次/新发现'标志",
-        "字幕有'原来猫会...'",
+        "字幕有'原来...'",
         "镜头有特写/慢动作"
       ],
-      "verifier_keywords": ["第一次", "原来", "真相", "证据", "原来如此"],
-      "config_distribution": 0.15,
-      "season01_usage": ["EP03 阳台征服", "EP07 窗台哲学家"],
-      "design_template": "YouKei 盯着窗外那个移动的小黑点，第一次发出 '咔咔' 声"
+      "verifier_keywords": ["第一次", "原来", "真相", "证据", "原来如此", "竟然"],
+      "config_distribution": 0.10,
+      "season01_usage": ["EP07 体检 X 光大危机", "EP11 身份差点双双曝光"],
+      "design_template": "宠物医院医生指着 X 光片: '这猫脖子上……怎么有个金属球？'"
     },
     "危机钩": {
-      "definition": "制造紧急/危险/冲突画面,激发肾上腺素",
+      "definition": "制造紧急/危险/冲突画面, 激发肾上腺素",
       "subtypes": {
-        "突袭": "突然出现意外对象 (例: 电梯里出现金毛)",
-        "暴露": "秘密被发现/危险临近 (例: 猫半夜打喷嚏)",
-        "倒计时": "时间紧迫 + 紧迫任务 (例: 电梯门开瞬间)"
+        "突袭": "突然出现意外对象 (例: 师傅闯入厨房, 触发三人战术警戒)",
+        "暴露": "秘密被发现/危险临近 (例: 无人机 + 探针同时上门)",
+        "维度破裂": "时空裂缝/维度夹击 (例: EP10 时空裂缝打开)",
+        "倒计时": "时间紧迫 + 紧迫任务 (例: EP01 三能量同秒相撞)"
       },
       "indicators": [
         "画面有'紧急/紧张/危险'氛围",
         "字幕有'X 秒/Y 小时'倒计时",
-        "音乐/灯光有变化"
+        "BGM/灯光有变化"
       ],
-      "verifier_keywords": ["紧急", "危险", "突然", "一秒", "倒计时"],
-      "config_distribution": 0.10,
-      "season01_usage": ["EP09 第一次外出", "EP11 生病记"],
-      "design_template": "半夜 3 点，YouKei 打喷嚏了 — 我打开手机，跳出来 12 个搜索结果：'猫打喷嚏会死吗'"
+      "verifier_keywords": ["紧急", "危险", "突然", "一秒", "倒计时", "警报", "暴露风险"],
+      "config_distribution": 0.20,
+      "season01_usage": ["EP01 三能量相撞", "EP05 师傅闯入", "EP09 旧搭档找上门", "EP10 时空裂缝", "EP11 双向夹击"],
+      "design_template": "上坤的黑客屏幕和 YouKi 的项圈同时发出警报: '身份暴露风险 98%。'"
     }
   },
   "validation_rules": {
@@ -100,17 +106,18 @@
     "tolerance_pct": 0.10,
     "tolerance_note": "每类钩子占比允许 ±10% 偏离配置 (避免过于死板)",
     "EP12_exception": {
-      "allow_null_hook": true,
-      "note": "EP12 季末温馨集允许 hook_type=null,但必须有温馨定格 + 季 2 预告"
+      "allow_null_hook": false,
+      "note": "EP12 季终集 hook_type 不允许 null, 必须 hook_type=悬念钩 + post_credits 彩蛋 (2077 校服女孩) 双重钩"
     }
   },
   "layer3_hard_check": {
     "enabled": true,
     "checks": [
       "shot 末 3s 字幕必须包含当前 hook_type 的 verifier_keywords 至少 1 个",
-      "EP12 必须有 '定格/圆满/季末' 类关键词 + season2_hook.teaser",
+      "EP12 必须有 '季末伏笔 / 2077 / 校服女孩' 类关键词 + season2_hook.description",
       "非 EP12 任何一集 hook_type=null → FAIL",
-      "verifier_keywords 缺失 0 个时 → 标记 'hook 强度不足',但不 FAIL"
+      "verifier_keywords 缺失 0 个时 → 标记 'hook 强度不足', 但不 FAIL",
+      "(新) 危机钩占比 > 0.30 时 → 警告 '节奏过快, 伪装喜剧需要缓冲'"
     ]
   }
 }

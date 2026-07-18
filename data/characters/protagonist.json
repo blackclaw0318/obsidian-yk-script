@@ -7,7 +7,25 @@
   "alias_in_subtitles": "主人",
   "gender": "男",
   "age_range": "30+",
-  "occupation": "博主 / 工程师",
+  "occupation": "博主 / 工程师 (表面) / 前国家级网安特工 (真实)",
+  "true_identity": {
+    "_season_1_canon": "2026-07-18 老板下发新 outline 后落地",
+    "actual_role": "前国家级网络安全特工",
+    "codename_in_field": "坤",
+    "background": "因厌倦打打杀杀隐居上海, 养了一只缅因猫和一只机械臂 (都以为是普通的)",
+    "core_skills": [
+      "十指飞敲代码, 同时黑掉三个系统",
+      "瞬间藏入键盘夹层 (藏证据)",
+      "旧东家系统入侵 + 删档案 (EP01 凌晨三点)",
+      "反追踪 + 加密狗 + 反追踪程序 (EP03 / EP11)"
+    ],
+    "self_deception": "以为自己养的是普通猫和普通家务机械臂, 实际两'宠物'都是秘密特工",
+    "actual_concern": "日常在偷偷抹除自己的存在痕迹, 总被猫和机械臂'意外'打断",
+    "active_modes": {
+      "writer_mode": "日常佛系后端程序员, WFH 摸鱼写代码 (表面)",
+      "field_mode": "完全特工, 战术级反应 (EP01 / EP02 / EP09 / EP10 / EP11 / EP12 高威胁集部分暴露)"
+    }
+  },
   "appearance_visible": {
     "face": "❌ 不露正脸 (后期不补, 永久只露手+背影)",
     "hands": "✅ 主要出镜 (手部特写 / 抱猫 / 玩猫)",
@@ -73,7 +91,14 @@
     "talking_to_cat": "当作能听懂, 经常解释自己的行为",
     "discipline": "不体罚, 只用 'no' + 移开注意力",
     "treats": "小鱼干 / 冻干 (奖励用, 不滥用)",
-    "boundary": "YouKei 有自己空间, 不强迫互动"
+    "boundary": "YouKi 有自己空间, 不强迫互动",
+    "_surface_note": "上坤认为 YouKi 是一只 7 月龄的普通红虎斑缅因猫 (实际 2077 时空修正员)"
+  },
+    "relationship_with_lerobot": {
+    "style": "像雇的家政阿姨 (嘴上嫌弃, 实际离不开)",
+    "talking_to_arm": "当作笨笨家务臂, 经常叹气'三百块买的, 果然一分钱一分货'",
+    "usage": "洗碗 / 拖地 / 叠衣服 / 接外卖 (实际是战术辅助单元, 但上坤不知道)",
+    "_surface_note": "上坤以为 Lerobot 是二手市场买来的家务残次品 (实际军方战术单元)"
   },
   "video_style": {
     "main_view": "猫视角 (猫是主角, 人是配角)",
@@ -99,10 +124,11 @@
     ]
   },
   "background_for_season01": {
-    "context": "30 天前刚搬进 60 平新家",
-    "with_cat_duration": "跟 YouKei 相伴 3 个月",
-    "work_situation": "WFH 为主, 偶尔去咖啡馆",
-    "social": "朋友少而精, 不爱热闹"
+    "context": "30 天前刚搬进上海 60 平 404 室 (新家)",
+    "with_youki_duration": "跟 YouKi 相伴 3 个月",
+    "with_lerobot_duration": "二手市场捡漏 Lerobot 2 个月",
+    "work_situation": "WFH 为主, 偶尔去咖啡馆 (表面; 实际在偷偷维护'前特工'身份擦除痕迹)",
+    "social": "朋友少而精, 不爱热闹 (EP09 旧搭档找上门是唯一'外部访客')"
   },
   "signature_first_line": "YouKei, 早上好。",
   "signature_last_line_pattern": "(故事结尾留一句未完, 留给下一集)",

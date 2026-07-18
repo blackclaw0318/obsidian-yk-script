@@ -1,328 +1,367 @@
 {
   "season_no": 1,
-  "title": "上坤 × YouKei 入住 60 平新家 30 天",
-  "subtitle": "Adaptation, Companionship, Cuteness, Friction, Warmth",
-  "theme": "适应、共处、萌点、生活小摩擦、温馨收尾",
+  "title": "《404室全员特工》12集短剧 (家务机械臂版)",
+  "subtitle": "Three Covert Agents, One 60㎡ Apartment, Zero Awareness",
+  "theme": "伪装喜剧 + 三伪装者互相 cover + 强钩子 + 90s 紧凑节奏",
   "total_episodes": 12,
+  "type": "强钩子短剧 / 日常搞笑 / 伪装喜剧",
+  "single_episode_seconds": 90,
+  "background_location": "上海 60 平 404 室 (具体地址不公开)",
+  "core_comedy_logic": "三个'伪装者'住在同一个 60 平 404 室, 各自以为只有自己有秘密, 每天都在小心翼翼地演'普通人'——每次出状况都靠另两个人的'失误'刚好圆上, 三人各自松一口气:'好险, 没那么容易暴露了。'",
   "stage_distribution": {
     "起势段": {
       "ep_range": "EP01-EP02",
       "ep_count": 2,
       "percentage": 17,
       "rhythm_intensity": "★★",
-      "description": "建立核心角色 + 萌点铺设 + 钩子悬念"
+      "description": "建立 3 伪装者各自的双身份 + 第一次 cover 协作"
     },
     "攀升段": {
       "ep_range": "EP03-EP06",
       "ep_count": 4,
       "percentage": 33,
       "rhythm_intensity": "★★★",
-      "description": "冲突升级 + 萌点累积 + 钩子强化"
+      "description": "日常 cover 升级 + 外部人(快递员/医生/外卖小哥)差点撞破"
     },
     "风暴段": {
       "ep_range": "EP07-EP10",
       "ep_count": 4,
       "percentage": 33,
       "rhythm_intensity": "★★★★",
-      "description": "高潮密集 + 钩子最强 + 反转多"
+      "description": "高威胁外部来访者 + cover 协作极限拉扯 + 反转密集"
     },
     "决战段": {
       "ep_range": "EP11-EP12",
       "ep_count": 2,
       "percentage": 17,
       "rhythm_intensity": "★★★★★",
-      "description": "终极危机 + 收束 + 季末温馨"
+      "description": "双向身份几乎同时暴露 + 互相救命 + 季终反转+ S2 伏笔"
     }
   },
   "satisfaction_matrix_config": {
-    "情感爆发": 0.60,
-    "悬念揭秘": 0.20,
-    "打脸复仇": 0.10,
-    "逆袭翻盘": 0.05,
-    "身份碾压": 0.05
+    "情感爆发": 0.20,
+    "悬念揭秘": 0.30,
+    "打脸复仇": 0.05,
+    "逆袭翻盘": 0.10,
+    "身份碾压": 0.35
   },
+  "satisfaction_matrix_note": "⚠️ 较旧季大幅调整: 萌宠日常 '情感爆发' 主导 → 伪装喜剧 '身份碾压+悬念揭秘' 主导 (强剧情钩)",
   "hook_type_distribution_config": {
-    "情绪钩": 0.30,
-    "悬念钩": 0.25,
-    "反转钩": 0.20,
-    "信息钩": 0.15,
-    "危机钩": 0.10
+    "情绪钩": 0.15,
+    "悬念钩": 0.30,
+    "反转钩": 0.25,
+    "信息钩": 0.10,
+    "危机钩": 0.20
   },
+  "hook_type_note": "⚠️ 旧季 '情绪钩' 主导 (萌宠) → 新季 '悬念+反转+危机' 主导 (高概念伪装剧)",
   "episodes": [
     {
       "ep": 1,
-      "title": "📦 搬家日",
+      "title": "💥 凌晨三点，我家炸了",
       "stage": "起势段",
       "stage_position_pct": 8,
-      "scene": "客厅纸箱堆",
-      "core_conflict": "YouKei 钻进最大箱子不出来",
-      "logline": "搬家日, 60 平里全是纸箱, YouKei 选中最大那个, 一头钻进去再也不出来",
-      "hook_type": "悬念钩",
-      "hook_subtype": "来者悬念",
-      "hook_text_template": "客厅尽头那个最大的纸箱, 突然动了一下",
-      "satisfaction_types": ["情感爆发"],
-      "satisfaction_intensity": "★★★",
-      "key_moments": [
-        "0:05 - 主人搬第 3 个箱子, YouKei 已经钻进第 1 个",
-        "0:30 - 主人发现猫不见了, 开始翻箱子",
-        "0:50 - 找到最大箱子, 里面探出半张脸"
+      "scene": "404 室客厅 + 厨房 + 卫生间",
+      "core_conflict": "凌晨 3:00 三道能量 (上坤旧档案入侵 / YouKi 时空稳定器 / Lerobot 战术自检) 同秒相撞, 跳闸",
+      "logline": "凌晨三点整, 404 室突然爆出一道蓝光, 整栋楼跳闸——三道伪装者的能量在同一秒相撞",
+      "hook_type": "危机钩",
+      "hook_subtype": "突袭",
+      "hook_text_template": "凌晨三点整, 404 室突然爆出一道蓝光, 整栋楼跳闸。",
+      "satisfaction_types": ["悬念揭秘", "身份碾压"],
+      "satisfaction_intensity": "★★★★",
+      "true_identity_reveal_moments": [
+        "上坤: 黑屏下十指飞敲代码, 瞬间藏入键盘夹层",
+        "YouKi: 项圈掏时空稳定器, 人立起来看屏幕",
+        "Lerobot: 跳闸前精准锁定目标, 跳闸后秒变'连杯子都夹不稳'"
       ],
-      "rhythm_notes": "前 5s 必现冲突 (搬箱子时猫钻空)",
-      "next_episode_seed": "EP02 第一夜, YouKei 不敢上床"
+      "key_moments": [
+        "0:05 - 蓝光一闪, 全楼黑屏",
+        "0:15 - 上坤装作拍电脑'又蓝屏了'",
+        "0:30 - YouKi 炸毛喵叫'被雷声吓到'",
+        "0:50 - Lerobot 抖臂'家务程序故障'",
+        "1:10 - Lerobot 故意把碗扫地上, 上坤心疼: '三百块买的, 果然一分钱一分货'"
+      ],
+      "rhythm_notes": "开场 3s 内必出蓝光危机; 中段 3 人 cover 切换快切; 末 5s 物业敲门 + 三人联手糊弄",
+      "next_episode_seed": "EP02 旧东家的包裹错寄到现住址, 必须取回来"
     },
     {
       "ep": 2,
-      "title": "🛏️ 第一夜",
+      "title": "📦 快递站的高危包裹",
       "stage": "起势段",
       "stage_position_pct": 17,
-      "scene": "主卧",
-      "core_conflict": "半夜 3 点 YouKei 第一次跳上床踩肚子",
-      "logline": "深夜, 主人以为 YouKei 不会上床; 凌晨 3 点, 一只爪子准时踩在肚子上",
-      "hook_type": "情绪钩",
-      "hook_subtype": "甜蜜中断",
-      "hook_text_template": "我闭上眼, 背后传来轻轻的呼噜——突然, 一只爪子踩在我肚子上",
-      "satisfaction_types": ["情感爆发"],
-      "satisfaction_intensity": "★★★★",
-      "key_moments": [
-        "0:05 - 主人准备睡觉, YouKei 在床头柜发呆",
-        "0:20 - 关灯, YouKei 消失",
-        "0:45 - 主人以为是养猫的胜利",
-        "1:00 - 凌晨 3 点, 一只爪子踩上肚子"
+      "scene": "楼下快递站 + 楼道",
+      "core_conflict": "上坤的特工装备被错寄, Lerobot 伪装售后残次品, YouKi 误把干扰器掏成小鱼干",
+      "logline": "快递柜弹出红色警告:'您的包裹经检测含金属异常, 请开箱查验。'",
+      "hook_type": "悬念钩",
+      "hook_subtype": "来者悬念",
+      "hook_text_template": "快递柜弹出红色警告: '您的包裹经检测含金属异常, 请开箱查验。'",
+      "satisfaction_types": ["悬念揭秘", "身份碾压"],
+      "satisfaction_intensity": "★★★",
+      "comedy_beats": [
+        "安检员问'这机械臂是干嘛的', 上坤:'扫地洗碗的, 就是不太好使'",
+        "YouKi 在背包里掏干扰器, 掏成了小鱼干, 叼着小鱼干探出头卖萌",
+        "Lerobot 干扰完立刻'死机', 脑袋歪到一边, 安检员戳了戳:'质量确实不咋地'"
       ],
-      "rhythm_notes": "用 '安静→突然' 制造反差, 萌点密度极高",
-      "next_episode_seed": "EP03 阳台征服, 第一次看鸟"
+      "rhythm_notes": "出门即被安检, 节奏提紧; 三人各怀鬼胎配合最关键",
+      "next_episode_seed": "EP03 上坤以为被同行盯上, 实际是自家猫在键盘上"
     },
     {
       "ep": 3,
-      "title": "🐦 阳台征服",
+      "title": "💻 黑客入侵？是猫踩的",
       "stage": "攀升段",
       "stage_position_pct": 25,
-      "scene": "阳台",
-      "core_conflict": "YouKei 第一次看窗外飞过的鸟, 激动撞到玻璃",
-      "logline": "第一次带 YouKei 上阳台, 一只麻雀飞过, YouKei 头撞玻璃",
-      "hook_type": "信息钩",
-      "hook_subtype": "证据揭露",
-      "hook_text_template": "YouKei 盯着窗外那个移动的小黑点, 第一次发出 '咔咔' 声",
-      "satisfaction_types": ["悬念揭秘"],
-      "satisfaction_intensity": "★★★",
-      "key_moments": [
-        "0:05 - 主人抱 YouKei 第一次到阳台",
-        "0:25 - 麻雀飞过, YouKei 瞳孔放大",
-        "0:50 - YouKei 头撞玻璃 (萌点 + 心痛)",
-        "1:10 - YouKei 退后一步, 又冲上去"
+      "scene": "次卧 (书房) + 客厅",
+      "core_conflict": "上坤以为同行入侵, 实际是 YouKi 故意'捣乱修正', Lerobot 本想反制但识别为'猫'作罢",
+      "logline": "上坤的屏幕突然弹出红色警报:'检测到未知入侵, 防火墙已被突破三层。'",
+      "hook_type": "反转钩",
+      "hook_subtype": "动机反转",
+      "hook_text_template": "上坤的屏幕突然弹出红色警报: '检测到未知入侵, 防火墙已被突破三层。'",
+      "satisfaction_types": ["反转钩", "身份碾压"],
+      "satisfaction_intensity": "★★★★",
+      "comedy_beats": [
+        "上坤反追踪时的架势像要开战, 结果看到猫瞬间垮脸",
+        "Lerobot 擦桌子的手法极其精准, 桌面擦得一尘不染, 上坤:'除了洗碗不行, 擦桌子还凑合'",
+        "其实 Lerobot 擦桌子是军用级'清除痕迹'模式, 连指纹都给擦没了"
       ],
-      "rhythm_notes": "信息钩: 给观众留 '它会撞几次?' 的疑问",
-      "next_episode_seed": "EP04 厨房事变, 鱼被偷"
+      "rhythm_notes": "开篇危机感强, 中段反转密集 (上坤垮脸), 末钩留 Lerobot 擦桌的军用真相",
+      "next_episode_seed": "EP04 上坤半夜起夜, 看见 Lerobot 练军体拳"
     },
     {
       "ep": 4,
-      "title": "🐟 厨房事变",
+      "title": "🥋 机械臂半夜在练武",
       "stage": "攀升段",
       "stage_position_pct": 33,
-      "scene": "厨房 + 客厅",
-      "core_conflict": "YouKei 把我没吃完的鱼叼到沙发下藏起来",
-      "logline": "晚饭剩的清蒸鱼放厨房, 主人洗个澡出来, 鱼不见了, 沙发下传来咀嚼声",
-      "hook_type": "反转钩",
-      "hook_subtype": "动机反转",
-      "hook_text_template": "沙发下那个湿湿的东西, 不是水, 是鱼——我以为它在玩, 其实它在藏",
-      "satisfaction_types": ["打脸复仇"],
+      "scene": "404 室客厅 (深夜)",
+      "core_conflict": "Lerobot 半夜偷偷启动演练, YouKi 不小心按到觉醒按钮, 三人 cover 一发",
+      "logline": "上坤起夜喝水, 看见客厅里 Lerobot 正在黑暗中耍一套标准军体拳。",
+      "hook_type": "悬念钩",
+      "hook_subtype": "目击证据",
+      "hook_text_template": "上坤起夜喝水, 看见客厅里 Lerobot 正在黑暗中耍一套标准军体拳。",
+      "satisfaction_types": ["悬念揭秘"],
       "satisfaction_intensity": "★★★",
-      "key_moments": [
-        "0:05 - 主人把鱼放厨房, 准备洗澡",
-        "0:30 - 洗澡出来, 鱼盘空了",
-        "0:55 - 找到沙发下, YouKei 在吃",
-        "1:15 - 主人想抓, YouKei 叼着鱼跑"
+      "comedy_beats": [
+        "上坤蹲守时打了个哈欠, Lerobot 差点跟着'打哈欠'(关节松动)",
+        "YouKi 按完按钮就后悔了, 用爪子拼命按关机键按不到",
+        "最后上坤把机械臂重启了一百遍, 得出结论:'二手货就是容易抽风'"
       ],
-      "rhythm_notes": "反转钩: '它在玩' → '其实它在藏' (本能胜利)",
-      "next_episode_seed": "EP05 洗澡大作战, 第一次洗澡"
+      "rhythm_notes": "开篇目击画面 + 中段 10min 蹲守长镜 + 末段反转 (YouKi 才是元凶)",
+      "next_episode_seed": "EP05 物业派修水管的师傅, 师傅在屋里到处撞到三人的秘密道具"
     },
     {
       "ep": 5,
-      "title": "🛁 洗澡大作战",
+      "title": "🔧 修水管的闯进来了",
       "stage": "攀升段",
       "stage_position_pct": 42,
-      "scene": "卫生间",
-      "core_conflict": "YouKei 第一次洗澡, 全程爆走 + 抓伤",
-      "logline": "主人准备给猫洗澡, YouKei 抓伤主人 + 泼水 + 逃跑 (3 次)",
-      "hook_type": "悬念钩",
-      "hook_subtype": "结果悬念",
-      "hook_text_template": "主人抹脸时, 突然发现 YouKei 已经跳到书房键盘上 — EP06 预告",
-      "satisfaction_types": ["情感爆发", "悬念揭秘"],
+      "scene": "404 室厨房 + 客厅",
+      "core_conflict": "三人同时警觉, 结果只是修水管的; 师傅在屋里捡扳手时差点和麻醉针脸贴脸",
+      "logline": "门锁'咔哒'一声被撬开, 一个穿工装的男人径直走进了厨房。",
+      "hook_type": "反转钩",
+      "hook_subtype": "危机误判",
+      "hook_text_template": "门锁'咔哒'一声被撬开, 一个穿工装的男人径直走进了厨房。",
+      "satisfaction_types": ["反转钩", "身份碾压"],
       "satisfaction_intensity": "★★★★",
-      "key_moments": [
-        "0:05 - 主人试水温, YouKei 门口发呆",
-        "0:25 - 进浴缸瞬间 4 爪抓盆边",
-        "0:55 - 主人脸被泼水 (慢动作)",
-        "1:15 - 毛巾裹成猫卷, 露半张脸"
+      "comedy_beats": [
+        "修水管师傅弯腰捡扳手, 差点和地上的麻醉针脸贴脸, 被 YouKi 一爪子扒走",
+        "师傅让 Lerobot 递个扳手, Lerobot 精准扔过去钉在墙上, 师傅:'你这家务臂劲儿挺大啊'",
+        "师傅走后三人对视一眼, 同时开始收拾各自掉出来的东西, 谁也不问谁"
       ],
-      "rhythm_notes": "中段冲突密集, 末钩留 EP06 预告",
-      "next_episode_seed": "EP06 电脑前的观众, 趴键盘"
+      "rhythm_notes": "开篇三人战术警戒 → 中段三次 cover 切换 → 末段师傅走后三人无言收场",
+      "next_episode_seed": "EP06 上坤夸 Lerobot 一句, YouKi 醋了"
     },
     {
       "ep": 6,
-      "title": "💻 电脑前的观众",
+      "title": "💖 争宠大战（争宠特辑）",
       "stage": "攀升段",
       "stage_position_pct": 50,
-      "scene": "次卧 (书房)",
-      "core_conflict": "我加班 YouKei 趴键盘, 误发奇怪邮件",
-      "logline": "深夜加班, YouKei 跳上键盘, 邮件误发给 CEO, 主题 '喵喵喵'",
-      "hook_type": "情绪钩",
-      "hook_subtype": "心碎中断",
-      "hook_text_template": "邮件发出去了, 收件人是 CEO, 主题 '喵喵喵' — 老板的脸凝固了",
-      "satisfaction_types": ["情感爆发"],
+      "scene": "404 室客厅 + 次卧",
+      "core_conflict": "YouKi vs Lerobot 内卷抢上坤注意力, 上坤全程不知情",
+      "logline": "上坤刚夸了一句'今天碗洗得挺干净', YouKi 当场就醋了。",
+      "hook_type": "反转钩",
+      "hook_subtype": "动机反转",
+      "hook_text_template": "上坤刚夸了一句 '今天碗洗得挺干净', YouKi 当场就醋了。",
+      "satisfaction_types": ["情感爆发", "身份碾压"],
       "satisfaction_intensity": "★★★",
-      "key_moments": [
-        "0:05 - 主人深夜加班, YouKei 在旁陪",
-        "0:35 - YouKei 跳上键盘 (慢动作)",
-        "1:00 - 邮件发出, 主题 '喵喵喵'",
-        "1:15 - 主人脸凝固, YouKei 眯眼打呼噜"
+      "comedy_beats": [
+        "YouKi 故意把水杯推倒, 看 Lerobot 能不能接住, Lerobot 次次精准接住",
+        "Lerobot 拖地的时候故意绕开猫碗, YouKi 就故意把猫碗推到拖把路径上",
+        "最后上坤一手撸猫一手拍机械臂:'都是我的好大儿～', 两个家伙同时露出胜利表情"
       ],
-      "rhythm_notes": "情绪钩: 主人崩溃 vs 猫满足 (反差)",
-      "next_episode_seed": "EP07 窗台哲学家, 看楼下遛狗"
+      "rhythm_notes": "本集无外部威胁, 纯三人家庭喜剧; 节奏偏轻快, 末钩留 YouKi vs Lerobot 下集再战",
+      "next_episode_seed": "EP07 带 YouKi 打疫苗 + Lerobot 假装故障帮 YouKi 隐藏道具"
     },
     {
       "ep": 7,
-      "title": "🪟 窗台哲学家",
+      "title": "🏥 体检 X 光大危机",
       "stage": "风暴段",
       "stage_position_pct": 58,
-      "scene": "客厅窗台",
-      "core_conflict": "YouKei 看楼下遛狗的人, 困惑脸",
-      "logline": "周末午后, YouKei 第一次看楼下遛狗, 困惑 '狗为啥要被牵着?'",
-      "hook_type": "信息钩",
-      "hook_subtype": "证据揭露",
-      "hook_text_template": "YouKei 盯着楼下那只狗, 突然扭头看我 — 它在想什么?",
-      "satisfaction_types": ["悬念揭秘"],
-      "satisfaction_intensity": "★★★",
-      "key_moments": [
-        "0:05 - 主人晒衣服, YouKei 跳上窗台",
-        "0:30 - 楼下小狗路过, YouKei 歪头 45 度",
-        "1:00 - 主人画外音: '它可能在想...'",
-        "1:20 - 主人想到自己也被 '拴' 在家"
+      "scene": "宠物医院 + 回家路上",
+      "core_conflict": "X 光片拍出 YouKi 项圈里的未来道具, Lerobot 故意碰掉电源线救场",
+      "logline": "宠物医院医生指着 X 光片:'这猫脖子上……怎么有个金属球？'",
+      "hook_type": "危机钩",
+      "hook_subtype": "暴露危机",
+      "hook_text_template": "宠物医院医生指着 X 光片: '这猫脖子上……怎么有个金属球？'",
+      "satisfaction_types": ["悬念揭秘", "危机钩"],
+      "satisfaction_intensity": "★★★★",
+      "comedy_beats": [
+        "YouKi 藏道具的时候腮帮子鼓成仓鼠, 上坤:'你嘴里藏什么了？'它立刻咽下去",
+        "Lerobot 拔电源线的手法极其精准, 拔完还假装是被线绊倒的",
+        "回家路上 YouKi 趴在 Lerobot 背上, 难得没有打架——算是欠了个人情"
       ],
-      "rhythm_notes": "信息钩: '它在想什么?' + 主人共鸣 (拟人化心理)",
-      "next_episode_seed": "EP08 朋友来访, 对猫毛过敏"
+      "rhythm_notes": "开篇 X 光危机 → 中段三人分工 cover → 末钩留 YouKi+Lerobot 关系微妙转变",
+      "next_episode_seed": "EP08 外卖小哥透过门缝看见屋里有红光"
     },
     {
       "ep": 8,
-      "title": "👥 朋友来访",
+      "title": "🛵 外卖小哥看见了什么",
       "stage": "风暴段",
       "stage_position_pct": 67,
-      "scene": "客厅 + 玄关",
-      "core_conflict": "朋友对猫毛过敏打喷嚏, YouKei 反而蹭他",
-      "logline": "朋友来家里, 全程打喷嚏, YouKei 主动蹭他, 朋友笑了",
+      "scene": "404 室玄关 + 客厅",
+      "core_conflict": "上坤在洗澡, YouKi 直立开门 + Lerobot 自己动, 外卖小哥吓掉外卖",
+      "logline": "外卖员敲门送餐, 门开一条缝, 他看见屋里有红光在扫。",
       "hook_type": "反转钩",
-      "hook_subtype": "身份反转",
-      "hook_text_template": "朋友一直打喷嚏, 突然不打了 — YouKei 蹭了他一脸口水, 他居然笑了",
-      "satisfaction_types": ["打脸复仇", "情感爆发"],
+      "hook_subtype": "目击反转",
+      "hook_text_template": "外卖员敲门送餐, 门开一条缝, 他看见屋里有红光在扫。",
+      "satisfaction_types": ["身份碾压", "悬念揭秘"],
       "satisfaction_intensity": "★★★★",
-      "key_moments": [
-        "0:05 - 门铃响, 朋友拎水果",
-        "0:30 - 朋友进门, YouKei 主动蹭腿",
-        "1:00 - 朋友打喷嚏 8 次",
-        "1:20 - 朋友笑了: '这猫, 值' (反转)"
+      "comedy_beats": [
+        "YouKi 开门的姿势像个小矮人, 踮脚够把手",
+        "Lerobot 接外卖的时候还签了字, 字迹居然是标准的军方字体",
+        "上坤出来的时候头发上还滴着水, 全程淡定, 仿佛家里猫会开门、机械臂会取外卖很正常"
       ],
-      "rhythm_notes": "反转钩: '过敏嫌弃' → '真香'",
-      "next_episode_seed": "EP09 第一次外出, 猫包出门"
+      "rhythm_notes": "外卖小哥视角 = 观众视角, 看到三伪装者'破绽瞬间', 节奏紧凑",
+      "next_episode_seed": "EP09 上坤旧搭档找上门, 念旧暗号"
     },
     {
       "ep": 9,
-      "title": "🚪 第一次外出",
+      "title": "🚪 旧同事找上门",
       "stage": "风暴段",
       "stage_position_pct": 75,
-      "scene": "楼道 + 电梯",
-      "core_conflict": "把 YouKei 装猫包出门, 它全程叫",
-      "logline": "带 YouKei 出门买猫粮, 电梯里疯狂叫, 出电梯瞬间安静 (看到树)",
+      "scene": "404 室玄关 + 客厅",
+      "core_conflict": "旧搭档念暗号劝归队, 上坤憋得脸通红不能接, YouKi+Lerobot 反把他当人质",
+      "logline": "敲门声响起, 门外的人说:'老坤, 我知道你在里面。'",
       "hook_type": "危机钩",
-      "hook_subtype": "突袭",
-      "hook_text_template": "电梯门开了, 迎面是一只金毛 — YouKei 在猫包里疯狂挣扎",
-      "satisfaction_types": ["逆袭翻盘"],
-      "satisfaction_intensity": "★★★★",
-      "key_moments": [
-        "0:05 - 主人把 YouKei 装进猫包, YouKei 反抗",
-        "0:30 - 电梯里疯狂叫 (10 秒连续)",
-        "1:00 - 出电梯, 看到楼下大树",
-        "1:20 - 突然安静, 盯着树看 (翻盘)"
+      "hook_subtype": "高威胁来访",
+      "hook_text_template": "敲门声响起, 门外的人说: '老坤, 我知道你在里面。'",
+      "satisfaction_types": ["危机钩", "悬念揭秘"],
+      "satisfaction_intensity": "★★★★★",
+      "comedy_beats": [
+        "搭档在门口念'黄河远上白云间', 上坤在里面憋得脸通红不能接",
+        "YouKi 掏错了道具, 掏出来个小扇子, 对着上坤扇了半天",
+        "最后三人围着信封坐成一圈, 谁也不敢先拆, 互相推来推去"
       ],
-      "rhythm_notes": "危机钩 + 逆袭: '失控' → '被树治愈'",
-      "next_episode_seed": "EP10 摄影日, 拍表情包"
+      "rhythm_notes": "开篇高威胁暗号 → 中段三人互相 cover 反转 → 末钩信封悬念留 EP10+",
+      "next_episode_seed": "EP10 YouKi 项圈预警时空裂缝, Lerobot 战术护盾反而扩大裂缝"
     },
     {
       "ep": 10,
-      "title": "📸 摄影日",
+      "title": "🌀 时空裂缝打开了",
       "stage": "风暴段",
       "stage_position_pct": 83,
-      "scene": "全屋",
-      "core_conflict": "给 YouKei 拍照纪念, 它一直动 + 表情包",
-      "logline": "想给 YouKei 拍写真, 拍了 100 张全是糊的, 删相机瞬间它看镜头",
-      "hook_type": "反转钩",
-      "hook_subtype": "局势反转",
-      "hook_text_template": "拍了 100 张, 全是糊的; 删掉相机的瞬间, YouKei 突然坐下看镜头",
-      "satisfaction_types": ["情感爆发", "悬念揭秘"],
-      "satisfaction_intensity": "★★★★",
-      "key_moments": [
-        "0:05 - 主人架相机, YouKei 走来走去",
-        "0:35 - 快门响 100 次, 全糊",
-        "1:05 - 主人放下相机叹气",
-        "1:15 - YouKei 突然坐下看镜头 (表情包)"
+      "scene": "404 室客厅中央",
+      "core_conflict": "YouKi 道具越补越大, Lerobot 护盾撞裂缝反扩, 上坤灭火器干粉'呛'没了",
+      "logline": "客厅中央凭空出现了一个旋转的黑色小漩涡, 滋滋往外冒电火花。",
+      "hook_type": "危机钩",
+      "hook_subtype": "维度破裂",
+      "hook_text_template": "客厅中央凭空出现了一个旋转的黑色小漩涡, 滋滋往外冒电火花。",
+      "satisfaction_types": ["逆袭翻盘", "悬念揭秘"],
+      "satisfaction_intensity": "★★★★★",
+      "comedy_beats": [
+        "YouKi 掏了十种道具全用错了, 最后掏出来个创可贴往裂缝上贴",
+        "Lerobot 的护盾是军用防爆炸的, 对时空裂缝完全无效还起反作用",
+        "上坤喷完灭火器拍拍手:'老房子线路就是差, 对了 Lerobot 你把地拖一下'"
       ],
-      "rhythm_notes": "反转钩: '失败' → '它配合的瞬间'",
-      "next_episode_seed": "EP11 生病记, 打喷嚏吓到查百度"
+      "rhythm_notes": "中段双失败 (YouKi + Lerobot) → 末段上坤一招灭火 (反套路) → 末钩留 EP11 暴露危机",
+      "next_episode_seed": "EP11 无人机 + 时空探针同时上门, 三伪装者联手抵消"
     },
     {
       "ep": 11,
-      "title": "🤒 生病记",
+      "title": "🎯 身份差点双双曝光",
       "stage": "决战段",
       "stage_position_pct": 92,
-      "scene": "主卧",
-      "core_conflict": "YouKei 第一次打喷嚏, 我吓到查百度",
-      "logline": "凌晨 3 点, YouKei 打喷嚏, 主人彻夜查百度, 通宵陪护",
+      "scene": "404 室客厅 (危机)",
+      "core_conflict": "旧东家追踪系统 + 未来 AI 探针同时上门, 三人联手抵消",
+      "logline": "上坤的黑客屏幕和 YouKi 的项圈同时发出警报:'身份暴露风险 98%。'",
       "hook_type": "危机钩",
-      "hook_subtype": "暴露",
-      "hook_text_template": "半夜 3 点, YouKei 打喷嚏了 — 我打开手机, 跳出来 12 个搜索结果: '猫打喷嚏会死吗'",
-      "satisfaction_types": ["情感爆发"],
+      "hook_subtype": "双向夹击",
+      "hook_text_template": "上坤的黑客屏幕和 YouKi 的项圈同时发出警报: '身份暴露风险 98%。'",
+      "satisfaction_types": ["身份碾压", "逆袭翻盘"],
       "satisfaction_intensity": "★★★★★",
-      "key_moments": [
-        "0:05 - 主人睡梦中听到 '阿嚏'",
-        "0:30 - 主卧找到 YouKei, 摸它鼻子",
-        "1:00 - 主人开手机, 搜索 12 个结果",
-        "1:20 - 主人抱 YouKei 在床上, 通宵陪"
+      "comedy_beats": [
+        "上坤敲键盘敲到冒烟, YouKi 项圈闪到过载, Lerobot 马达烧到发烫",
+        "危机解除后三人同时夸自己, 然后又同时闭嘴假装什么都没干",
+        "楼下邻居投诉'楼上是不是在搞电焊', 上坤在业主群道歉:'不好意思家务臂功率有点大'"
       ],
-      "rhythm_notes": "危机钩最强 + 情感爆发最深 (通宵陪护)",
-      "next_episode_seed": "EP12 冬至, 季末温馨收束"
+      "rhythm_notes": "危机密度最高集, 节奏前紧后松, 末钩留 EP12 转移",
+      "next_episode_seed": "EP12 旧部门的人找上门, 三人各跑路在客厅撞个正着"
     },
     {
       "ep": 12,
-      "title": "🎄 季末冬至",
+      "title": "🚪 新的访客（第一季终）",
       "stage": "决战段",
       "stage_position_pct": 100,
-      "scene": "客厅 + 阳台",
-      "core_conflict": "(无冲突, 温馨收束)",
-      "logline": "冬至包饺子, YouKei 偷面团, 主人追, 季末温馨",
-      "hook_type": null,
-      "hook_subtype": null,
-      "hook_text_template": "(末集无钩子, 圆满收束)",
-      "satisfaction_types": ["情感爆发"],
+      "scene": "404 室玄关 + 客厅",
+      "core_conflict": "三人各跑路, 在客厅撞个正着; 开门发现穿校服的小女孩, 来自 2077",
+      "logline": "门口监控拍到一个穿黑风衣的人, 在 404 门口站了整整三分钟。",
+      "hook_type": "悬念钩",
+      "hook_subtype": "季终伏笔",
+      "hook_text_template": "门口监控拍到一个穿黑风衣的人, 在 404 门口站了整整三分钟。",
+      "satisfaction_types": ["悬念揭秘", "身份碾压"],
       "satisfaction_intensity": "★★★★★",
-      "key_moments": [
-        "0:05 - 主人揉面, YouKei 在旁看",
-        "0:35 - YouKei 一爪拍上面团",
-        "1:05 - 主人追, YouKei 叼面团跑",
-        "1:25 - 主人抱起 YouKei, 一起看窗外 (定格)"
+      "comedy_beats": [
+        "上坤的行李箱里一半是衣服一半是黑客设备",
+        "YouKi 的项圈里掉出来一堆乱七八糟的未来道具, 滚了一地",
+        "Lerobot 跑路前还不忘把垃圾打包带下去, 军用 AI:'撤离前必须清除户主生活痕迹'"
       ],
-      "rhythm_notes": "末集无钩子, 给观众满足感 + 季 2 预告",
-      "next_episode_seed": "(季 2 预告: 新年第一天, YouKei 看烟火 + 听鞭炮)"
+      "post_credits": "门打开, 门口站着一个穿校服的小女孩, 举着信封:'请问……这里是'坤'叔叔家吗？我是从 2077 年来的。'（第二季伏笔）",
+      "rhythm_notes": "开篇高威胁 → 中段三人各自收拾 → 末段客厅撞车 → 彩蛋 S2 伏笔",
+      "next_episode_seed": "S2: 2077 校服女孩 = 季 2 第一条主线"
     }
   ],
   "season2_hook": {
-    "teaser": "新年第一天, YouKei 跳上窗台看烟火, 第一次听到鞭炮声, 它会怎么反应?",
-    "reveal_date": "2026-12-31 23:50 (除夕夜 EP01 预告)",
-    "season2_open_date": "(等季 1 收官后老板拍板)"
+    "introduced_in_ep": 12,
+    "hook_type": "季终伏笔",
+    "description": "穿校服的小女孩来自 2077, 找到 404 室'坤'叔叔——三伪装者身份进一步暴露? 新同盟? 季 2 主线",
+    "characters_introduced": ["2077 校服女孩 (未命名, 待 S2 拍板)"],
+    "unresolved_threads": [
+      "上坤旧部门追踪是否会升级",
+      "YouKi 时空修正任务进度",
+      "Lerobot 军方'回收'信号",
+      "2077 校服女孩来意"
+    ]
   },
   "quality_targets": {
-    "每集字数": "300-500 字 (中文 Markdown)",
-    "shot_count": "3-8 个",
-    "duration_target_s": "30-90",
-    "emotion_peaks_per_episode": "至少 1 个 (15% / 50% / 85% 位置)",
-    "hook_strength_min": "中等 (EP01-02 引入期) / 强 (EP03-10) / 极强 (EP11) / 无 (EP12)"
+    "critic_threshold": 7.5,
+    "satisfaction_types_per_ep": "≥1",
+    "must_include_per_ep": [
+      "3 个伪装者同时出场至少 1 次",
+      "1 次 cover 协作 / cover 切换",
+      "末 5 秒钩子 (EP12 例外, EP12 改 60s 钩子 + 彩蛋)"
+    ],
+    "duration_target_seconds": 90,
+    "duration_tolerance_seconds": 5
+  },
+  "_provenance": {
+    "replaced_at": "2026-07-18T20:09:00+08:00",
+    "replaced_by": "黑 (Hei) — 应老板 7-18 20:06 '先e再c' 命令",
+    "previous_outline_file": ".drafts/season-01-SNAPSHOT.json",
+    "source_outline_file": ".drafts/season-02-DRAFT.json",
+    "old_season": {
+      "title": "上坤 × YouKei 入住 60 平新家 30 天",
+      "genre": "萌宠日常",
+      "character_count": 2,
+      "stage_system": "起势/攀升/风暴/决战 (节奏 4 段)"
+    },
+    "new_season": {
+      "title": "《404室全员特工》12集短剧 (家务机械臂版)",
+      "genre": "伪装喜剧 + 强钩子",
+      "character_count": 3,
+      "stage_system": "起势/攀升/风暴/决战 (节奏 4 段, 内部 cover 协作密度增加)",
+      "hook_system_change": "情绪钩 0.30→0.15, 危机钩 0.10→0.20, 身份碾压 0.05→0.35"
+    },
+    "compatibility_breakage": [
+      "state.json 总数重置 (next_ep=1, total_runs=0)",
+      "memory_bank.json 重置",
+      "已生成 output/yk-s01-ep0{1..4}.md 标记为 deprecated (保留, 不删)",
+      "已发博客 4 篇 (obsidian-journal) 撤稿决定权老板"
+    ]
   }
 }

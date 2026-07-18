@@ -1,0 +1,115 @@
+{
+  "name": "Lerobot",
+  "name_pronunciation_note": "Lerobot = Le + robot, 读作 '勒-robot', 名字来源: 开源机械臂框架 LeRobot (HuggingFace, MIT)",
+  "type": "机械臂 (机械单元, 非生物)",
+  "surface_in_story": {
+    "alias": "家务机械臂",
+    "origin_story": "上坤图省事在二手市场买的家用机械臂, 号称'全自动家务小能手'",
+    "perceived_ability": "笨手笨脚, 经常把碗打碎、衣服叠歪",
+    "household_role": [
+      "洗碗 (打碎率 30%)",
+      "拖地 (严重迷路)",
+      "叠衣服 (经常叠歪)",
+      "晾衣服 (夹不住)",
+      "接外卖 (看上去很好使)",
+      "擦桌子 (擦得过于干净, 不合理)"
+    ],
+    "appearance": "单臂 6 自由度机械臂, 工业灰色金属外壳, 关节处偶尔漏油"
+  },
+  "true_identity": {
+    "actual_role": "军方秘密研发的'战术辅助单元'",
+    "background": "因一次实验事故流落到二手市场, 被上坤当作残次家务臂低价捡漏买回",
+    "core_ai": "独立战斗 AI, 平时低功耗待机, 间歇性觉醒",
+    "weakness": "电力不足, 只在特定触发条件下 (战斗/侦察/高威胁) 才完全觉醒",
+    "self_perception": "以为自己潜伏在平民家, 把上坤当'需要保护的无辜程序员', 把猫当'普通生物'",
+    "active_modes": {
+      "household_mode": "日常低功耗, 装作'笨家务臂'",
+      "guard_mode": "检测到威胁时切换, 锁定 + 战术护盾 + 电磁脉冲",
+      "battle_mode": "完全觉醒 (耗电极大, 触发条件极严)"
+    },
+    "battle_features": [
+      "战术自检脉冲 (半夜电量溢出时自动释放)",
+      "战术护盾 (军用防爆)",
+      "电磁脉冲干扰 (反向利用为'防干扰做家务')",
+      "军用字体签字",
+      "标准军体拳演练",
+      "液压系统快速充能 (< 0.3s)"
+    ]
+  },
+  "comedy_mechanics": {
+    "core_comedy": "假装'笨笨家务臂' → 实际'战术单元' → 每次出状况都用战术动作'装作'故障糊弄",
+    "self_deception": "以为自己潜伏得很好, 实际上所有人都看出来是战术臂",
+    "cover_stories": [
+      "家务程序故障",
+      "关节卡顿",
+      "电量不足",
+      "二手货质量不咋地",
+      "家务算法误判"
+    ],
+    "false_failures_intentionally_caused": [
+      "碗打碎 = 故意的'故障表演'",
+      "衣服叠歪 = 故意的'低精度模拟'",
+      "接外卖时签字 = 故意的'人类字体模仿' (但写成了军方字体)"
+    ]
+  },
+  "personality_in_story": [
+    "以为自己在保护'无辜程序员' (实际对方是前特工)",
+    "判定'户主生活质量'是核心 KPI",
+    "对'入侵者'零容忍, 对'家庭成员'过度保护",
+    "误判 AI (把猫当'普通生物' → 实际 2077 时空修正员)",
+    "家务内卷能力 (争宠特辑 EP06 的'碗洗得更亮')"
+  ],
+  "household_chores_jit": {
+    "do_well": [
+      "擦桌子 (军用级'清除痕迹'模式, 连指纹都给擦没了)",
+      "接外卖 (签字 + 递物一气呵成)",
+      "战术护盾 (偶尔误启, 当作'空气净化')"
+    ],
+    "do_bad_intentionally": [
+      "洗碗 (控制力度装作不稳)",
+      "拖地 (故意绕开猫碗)",
+      "晾衣服 (装作夹不稳)"
+    ]
+  },
+  "signature_moves": [
+    "深夜标准军体拳演练",
+    "碗打碎表演",
+    "歪头'故障' (实际战术扫描)",
+    "递扳手钉墙上 (实际军用投掷精度)",
+    "撤离前打包垃圾 (军用 AI: '清除户主生活痕迹')"
+  ],
+  "voice_in_script": {
+    "tone": "无语音 (机械臂不说话), 用机械动作 + 字幕'嗡''咔嚓''嘎吱'",
+    "subtitle_color": "灰色 (区别于上坤黑字 + YouKi 黄色)",
+    "sound_effects": [
+      "嗡—— (待机)",
+      "咔嚓咔嚓 (战术动作)",
+      "嘎吱 (装作故障)",
+      "嗞嗞 (电磁脉冲)"
+    ]
+  },
+  "writing_rules_for_Lerobot": {
+    "never_break_cover_too_early": "伪装在前 60s 必须 hold 住, 末 30s 才暴露'过头'细节",
+    "household_must_look_struggle": "碗打碎/衣服叠歪 必须出现, 但不能影响整体'在干活'的画面",
+    "power_management_aware": "白天必须低功耗, 半夜才允许'战术自检'类活动",
+    "no_speech": "机械臂不说话, 用字幕 + 音效"
+  },
+  "forbidden": [
+    "❌ Lerobot 开口说话 (字幕只用'嗡''咔嚓'等音效)",
+    "❌ 白天完全觉醒战斗模式 (只在 EP09/10/11/12 等高威胁集短暂启动)",
+    "❌ Lerobot 直接破坏剧情 (必须 cover 协作形式出现)",
+    "❌ Lerobot 暴露真实身份给外人 (only 三人互相 cover 时可瞬间露出)"
+  ],
+  "references_for_writer": {
+    "real_world_inspiration": [
+      "HuggingFace LeRobot 开源项目 (MIT, MIT协议)",
+      "家务机械臂市场常见型号 (二手残次品风格)",
+      "科幻片'潜伏机器人'经典桥段 (Terminator / Chappie / M3GAN 等)"
+    ],
+    "tactical_unit_inspiration": [
+      "Boston Dynamics Spot (战术侦察)",
+      "军用排爆机械臂",
+      "AI safety: 间歇觉醒 + 电力管理"
+    ]
+  }
+}

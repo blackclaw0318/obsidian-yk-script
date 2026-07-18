@@ -1,9 +1,10 @@
 {
-  "name": "YouKei",
-  "name_jp_romaji": "YouKei",
+  "name": "YouKi",
+  "name_jp_romaji": "YouKi",
   "name_jp_kanji": "陽/洋/陽気",
   "name_meaning": "日语: 阳光 / 太阳 / 开朗 (阳性 + 阳光 + 活泼)",
-  "name_pronunciation_note": "保留日语发音, 中文环境下读作 'You-Kei' (悠-kei, 重音在后)",
+  "name_pronunciation_note": "保留日语发音, 中文环境下读作 'You-Ki' (悠-Ki, 大写 K, 重音在后)",
+  "_spelling_change_note": "2026-07-18 老板下发新 outline 时重拼写: YouKei → YouKi (大写 K)",
   "nicknames": ["小阳", "阳阳", "You宝宝"],
   "species": "Maine Coon (缅因猫)",
   "age_months": 7,
@@ -51,6 +52,18 @@
     "露肚子 (信任时翻肚皮, 但不让摸)",
     "半夜踩肚子 (凌晨 3 点经典)"
   ],
+  "true_identity": {
+    "_season_1_canon": "2026-07-18 老板下发新 outline 后落地",
+    "actual_role": "2077 年穿越回来的猫型时空修正员",
+    "gadget": "四次元项圈 (类似哆啦A梦的口袋, 可掏各种未来道具)",
+    "mission": "阻止未来某场 AI 灾难 (具体什么灾难在 EP12 彩蛋揭晓 — 2077 校服小女孩来由)",
+    "self_deception": "以为上坤是普通人类程序员、Lerobot 是普通家务玩具",
+    "actual_concern": "经常偷偷掏出未来道具'修事情', 结果越修越乱 (EP01 时空稳定器 / EP02 干扰器 / EP04 觉醒按钮 / EP09 记忆消除喷雾 / EP10 时空道具 / EP11 时空屏蔽)",
+    "active_modes": {
+      "kitten_mode": "软萌粘人踩奶 (表面)",
+      "time_correction_mode": "掏出未来道具修正时空 (暗中, EP01/02/04/09/10/11/12)"
+    }
+  },
   "cute_factor": {
     "毛茸茸度": "★★★★★",
     "搞笑度": "★★★★ (天然呆)",

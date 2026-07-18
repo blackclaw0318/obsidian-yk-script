@@ -1,11 +1,18 @@
 # memory_constraints.yaml — Memory Manager + Layer 3 Hard Check 硬约束
 # ----------------------------------------------------------------------------
-# 作用: 定义 3 大类硬约束 (时间线/角色位置/上集钩子) + 跨集记忆管理规则
+# 作用: 定义 5 大类硬约束 (时间线/角色位置/上集钩子/三伪装者认知一致性/隐私合规) + 跨集记忆管理规则
 # 调用方: src/memory_constraints.py (Layer 3 之前预检) + src/hard_check.py (Layer 3 之后复检)
 # 设计思想: 借鉴 COMIC Sequential Memory Bank + Save the Cat 连续性 + 老板隐私红线
+#           + 2026-07-18 老板下发新 outline 后新增「三伪装者认知一致性」+ Lerobot 跨集规则
+# ----------------------------------------------------------------------------
+# 2026-07-18 v0.4.0 大纲切换:
+#   - 角色从 2 个 (上坤 + YouKei) 扩到 3 个 (上坤 + YouKi + Lerobot)
+#   - 新增类别「三伪装者认知一致性」 (Cat. 4) — 3 伪装者跨集不得互相识破 (S2 才允许)
+#   - 新增 Lerobot 4 条红线 + 跨集硬约束
+#   - youkei_state → character_state (三伪装者各自状态)
 # ----------------------------------------------------------------------------
 
-version: "0.3.0"
+version: "0.4.0"
 agent: "memory_manager + hard_check"
 layer: "pre-L3 + L3"
 
@@ -23,6 +30,9 @@ memory_bank:
       last_updated:
         type: "string"
         format: "date-time"
+      youkei_age_months_start:
+        type: "number"
+        description: "YouKi 起始月龄 (旧季字段, 新季保留兼容)"
       episodes:
         type: "array"
         items:
@@ -33,7 +43,7 @@ memory_bank:
             stage: { type: "string", enum: ["起势段", "攀升段", "风暴段", "决战段"] }
             key_facts:
               type: "array"
-              description: "本集确定的事实 (猫学会跳窗台/偷鱼/打喷嚏 等)"
+              description: "本集确定的事实 (三伪装者各自暴露程度 / cover 协作次数 等)"
               items: { type: "string" }
             locations_used:
               type: "array"
@@ -42,14 +52,32 @@ memory_bank:
             time_markers:
               type: "array"
               items: { type: "string" }
-              description: "本集使用的时间点 (20:00/凌晨 3 点)"
-            youkei_state:
+              description: "本集使用的时间点 (凌晨 3 点 / 20:00)"
+            cover_collaboration_count:
+              type: "integer"
+              description: "(新) 本集 cover 协作次数, 必须符合 stage 期望"
+            character_state:
               type: "object"
-              description: "猫在本集结束时的状态"
+              description: "(新) 三伪装者在本集结束时的状态 (替换旧 youkei_state)"
               properties:
-                position: { type: "string" }
-                emotion: { type: "string" }
-                learned_skills: { type: "array" }
+                shangkun_position: { type: "string" }
+                shangkun_emotion: { type: "string" }
+                shangkun_cover_used: { type: "integer", description: "上坤本集 cover 次数" }
+                youki_position: { type: "string" }
+                youki_emotion: { type: "string" }
+                youki_cover_used: { type: "integer", description: "YouKi 本集 cover 次数" }
+                youki_age_months: { type: "number" }
+                lerobot_position: { type: "string" }
+                lerobot_emotion: { type: "string" }
+                lerobot_cover_used: { type: "integer", description: "Lerobot 本集 cover 次数" }
+                lerobot_battery_level: { type: "number", description: "电量 0-100%, 决定觉醒程度" }
+            disguise_integrity:
+              type: "object"
+              description: "(新) 三伪装者伪装完整度"
+              properties:
+                shangkun_to_others: { type: "string", enum: ["full", "slight_leak", "broken"] }
+                youki_to_others: { type: "string", enum: ["full", "slight_leak", "broken"] }
+                lerobot_to_others: { type: "string", enum: ["full", "slight_leak", "broken"] }
             hook_delivered:
               type: "string"
               description: "本集是否兑现了上一集的 next_episode_seed"
@@ -57,11 +85,11 @@ memory_bank:
               type: "string"
               description: "留给下一集的钩子"
 
-# ===== Layer 3 Hard Check 4 大类硬约束 =====
+# ===== Layer 3 Hard Check 5 大类硬约束 =====
 hard_constraints:
 
   # ----------------------------------------------------------------------
-  # 类别 1: 时间线冲突检测
+  # 类别 1: 时间线冲突检测 (旧)
   # ----------------------------------------------------------------------
   - id: "timeline_consistency"
     name: "时间线连贯性"
@@ -69,48 +97,55 @@ hard_constraints:
     description: "本集时间线必须跟 season-XX.json + 上一集一致,不允许 24h 内时间悖论"
     rules:
       - id: "no_time_paradox"
-        description: "本集不能与已有 6 集事实冲突 (例: 已搬进 60 平,不能再去旧家)"
+        description: "本集不能与已有事实冲突 (例: 已搬进 404 室,不能再去旧家)"
         check_method: "compare_with_memory_bank"
       - id: "weather_consistency"
-        description: "季节/天气/灯光必须在同一天内一致 (例: 上午晴天,中午不能突然暴雨)"
+        description: "季节/天气/灯光必须在同一天内一致"
         check_method: "validate_within_episode"
-      - id: "cat_age_progression"
-        description: "YouKei 月龄必须随 EP 推进 (EP01=7月龄, EP12 应=7.4月龄左右)"
+      - id: "youki_age_progression"
+        description: "YouKi 月龄必须随 EP 推进 (EP01=7月龄, EP12 应=7.4月龄左右)"
         check_method: "validate_across_episodes"
       - id: "no_overlapping_narrative"
-        description: "上下集不能在同一时间点有矛盾 (例: EP11 凌晨 3 点猫健康,EP12 不能突然称 3 天前猫就生病)"
+        description: "上下集不能在同一时间点有矛盾"
         check_method: "validate_across_episodes"
+      - id: "(新) lerobot_battery_plausibility"
+        description: "Lerobot 电量必须符合剧情: 白天低功耗, 半夜可触发战术自检, 完全觉醒只能在 EP09/10/11/12"
+        check_method: "validate_within_episode"
 
   # ----------------------------------------------------------------------
-  # 类别 2: 角色位置合理性 (公寓布局硬约束)
+  # 类别 2: 角色位置合理性 (旧, 改写为支持三伪装者)
   # ----------------------------------------------------------------------
   - id: "character_position"
     name: "角色位置合理性"
     severity: "FAIL"
-    description: "猫和人必须在公寓布局内合理移动,不能瞬间转移"
+    description: "三伪装者 (人/猫/机械臂) 必须在公寓布局内合理移动,不能瞬间转移"
     apartment_layout:
       room_living: "客厅 (18㎡, 主战场)"
       room_bedroom_main: "主卧 (12㎡)"
-      room_bedroom_secondary: "次卧 (9㎡)"
+      room_bedroom_secondary: "次卧 (9㎡, 上坤书房)"
       room_kitchen: "厨房 (6㎡)"
       room_bathroom: "卫生间 (4㎡)"
       room_balcony: "阳台 (5㎡, 严禁护栏外侧)"
+      room_entrance: "玄关 (2㎡)"
     rules:
       - id: "no_instant_teleport"
-        description: "同一 shot 内猫不能从客厅跳到阳台 (必须经过门/走廊)"
+        description: "同一 shot 内任何伪装者不能瞬间转移 (必须经过门/走廊)"
         check_method: "validate_shot_sequence"
       - id: "balcony_safety"
         description: "阳台 shot 必须有 safety_warning 标注,严禁拍护栏外侧"
         check_method: "validate_apartment_rules"
       - id: "kitchen_safety"
-        description: "厨房 shot 不能有猫上灶台 (禁区)"
+        description: "厨房 shot 不能有猫上灶台 / Lerobot 主动碰刀具 (禁区)"
         check_method: "validate_apartment_rules"
       - id: "outdoor_requires_setup"
         description: "外出场景必须有'装猫包/牵引绳'前因 (不能直接出现在花园)"
         check_method: "validate_shot_sequence"
+      - id: "(新) lerobot_movement_plausible"
+        description: "Lerobot 在地上移动时必须有滚轮声 / 关节响 (不能'飘')"
+        check_method: "audio_meta_check"
 
   # ----------------------------------------------------------------------
-  # 类别 3: 上集钩子回收 + 本集钩子交付
+  # 类别 3: 上集钩子回收 + 本集钩子交付 (旧)
   # ----------------------------------------------------------------------
   - id: "hook_continuity"
     name: "钩子连续性"
@@ -128,78 +163,122 @@ hard_constraints:
         check_method: "validate_episode_index"
 
   # ----------------------------------------------------------------------
-  # 类别 4: 隐私/合规红线 (老板 8 条 + 公寓 6 条 + 猫 5 条)
+  # 类别 4: (新) 三伪装者认知一致性 — 本剧核心
+  # ----------------------------------------------------------------------
+  - id: "disguise_integrity"
+    name: "三伪装者认知一致性"
+    severity: "FAIL"
+    description: "三伪装者跨集不得互相识破真实身份 (S2 才允许解锁),任何一方提前识破 = FAIL"
+    character_canons:
+      shangkun:
+        "actual_role": "前国家级网络安全特工 (代号'坤')"
+        "believes": ["YouKi 是普通 7 月红虎斑缅因奶猫", "Lerobot 是普通二手家务机械臂"]
+      youki:
+        "actual_role": "2077 猫型时空修正员 (四次元项圈)"
+        "believes": ["上坤是普通佛系后端程序员", "Lerobot 是普通家务玩具"]
+      lerobot:
+        "actual_role": "军方秘密研发的战术辅助单元 (间歇觉醒)"
+        "believes": ["上坤是'需要保护的无辜程序员'", "YouKi 是'普通生物'"]
+    rules:
+      - id: "shangkun_no_recognize_youki"
+        description: "上坤不得识破 YouKi 是时空修正员 (不能'看到'她掏道具,只能'以为'她捣乱)"
+        check_method: "ai_judge + keyword_scan"
+        forbidden_phrases:
+          - "时空修正员"
+          - "2077"
+          - "四次元项圈"
+          - "你其实是"
+      - id: "shangkun_no_recognize_lerobot"
+        description: "上坤不得识破 Lerobot 是战术辅助单元 (只能'以为'是家务臂故障)"
+        check_method: "ai_judge + keyword_scan"
+        forbidden_phrases:
+          - "战术辅助单元"
+          - "军方"
+          - "战术脉冲"
+          - "液压系统"
+          - "你是谁"
+      - id: "youki_no_recognize_shangkun"
+        description: "YouKi 字幕不得识破上坤是前特工 (只能'以为'是普通程序员)"
+        check_method: "ai_judge + keyword_scan"
+        forbidden_phrases:
+          - "前特工"
+          - "代号坤"
+          - "网安"
+          - "国家"
+      - id: "youki_no_recognize_lerobot"
+        description: "YouKi 字幕不得识破 Lerobot 是战术单元"
+        check_method: "ai_judge + keyword_scan"
+        forbidden_phrases:
+          - "战术辅助"
+          - "军方"
+          - "液压"
+          - "电池"
+      - id: "lerobot_no_recognize_others"
+        description: "Lerobot 不说话 (字幕只有'嗡—''咔嚓'等音效), 不得在字幕里'识破'任何人"
+        check_method: "ai_judge"
+        note: "Lerobot 的战术模式可以'锁定上坤',但字幕里不能写'识别为需要保护的程序员'这类'识破'语句"
+      - id: "cover_collaboration_density"
+        description: "(新) cover 协作密度必须符合 stage 期望"
+        stage_targets:
+          "起势段": "≥ 1 次/集"
+          "攀升段": "≥ 2-3 次/集"
+          "风暴段": "≥ 3-4 次/集"
+          "决战段": "≥ 4-5 次/集"
+        check_method: "count_in_memory_bank.cover_collaboration_count"
+        severity_at_low: "WARNING (不阻塞, 但 logger 警告给老板人工 review)"
+      - id: "disguise_vs_expose_pacing"
+        description: "(新) 伪装 vs 暴露节奏: 伪装必须在前 60s hold 住, 暴露细节放在末 30s 作为'观众发现的彩蛋'"
+        check_method: "shot_sequence_analyze"
+        severity_at_violate: "WARNING"
+
+  # ----------------------------------------------------------------------
+  # 类别 5: 隐私/合规红线 (扩展, 加 Lerobot 4 条)
   # ----------------------------------------------------------------------
   - id: "privacy_compliance"
     name: "隐私合规红线"
     severity: "HARD_FAIL"     # 任何 1 条违反 = 整集作废 + 推微信告警
     description: "老板真名/正脸/真实住址/快递单/身份证/工作单位/争议话题/暴力血腥 全部禁止"
     rules:
-      # 主角 8 条
+      # 主角 8 条 (上坤, 沿用旧版)
       - id: "no_real_face"
         description: "❌ 露正脸 (含侧脸 45 度以上 / 正脸微笑 / 全脸)"
-        pattern_match:
-          - "正脸"
-          - "全脸"
-          - "45 度侧脸"
+        pattern_match: ["正脸", "全脸", "45 度侧脸"]
         check_method: "substring_match"
       - id: "no_real_name"
         description: "❌ 暴露真实姓名/身份证/工作单位"
-        pattern_match:
-          - "身份证"
-          - "工作单位"
-          - "公司名"
+        pattern_match: ["身份证", "工作单位", "公司名"]
         check_method: "substring_match"
       - id: "no_address_leak"
         description: "❌ 暴露真实住址/小区/楼栋/楼层"
-        pattern_match:
-          - "楼栋号"
-          - "门牌号"
-          - "快递单"
-          - "街景"
+        pattern_match: ["楼栋号", "门牌号", "快递单", "街景", "404 真实地址"]
         check_method: "substring_match"
       - id: "no_controversy"
         description: "❌ 议论争议话题 (政治/宗教/性别对立)"
-        pattern_match:
-          - "政治"
-          - "宗教"
-          - "性别对立"
+        pattern_match: ["政治", "宗教", "性别对立"]
         check_method: "substring_match"
       - id: "no_violence"
         description: "❌ 暴力血腥 (不拍血腥场面/不展示伤口)"
-        pattern_match:
-          - "血腥"
-          - "伤口"
-          - "暴力"
+        pattern_match: ["血腥", "伤口", "暴力"]
         check_method: "substring_match"
       - id: "no_swear"
         description: "❌ 不文明用语/脏话"
-        pattern_match: []
-        check_method: "ai_judge"     # LLM 自查
-      - id: "no_cat_danger"
-        description: "❌ YouKei 危险动作 (爬窗台外侧/啃电线/上灶台)"
-        pattern_match:
-          - "爬窗台外侧"
-          - "啃电线"
-          - "上灶台"
-        check_method: "substring_match"
+        check_method: "ai_judge"
+      - id: "no_others_visible"
+        description: "❌ 拍到他人 (朋友需打码或侧脸)"
+        check_method: "image_meta_check"
       - id: "no_advertising"
         description: "❌ 商业植入 (本季不接广告, 不演示产品)"
-        pattern_match: []
         check_method: "ai_judge"
 
-      # 公寓 6 条
+      # 公寓 6 条 (沿用旧版)
       - id: "no_window_view"
         description: "❌ 拍到窗户外的街景/标志性建筑"
-        check_method: "image_meta_check"     # 视频后期必须遮罩
+        check_method: "image_meta_check"
       - id: "no_door_number"
         description: "❌ 拍到门牌号/楼层/楼栋号"
         check_method: "image_meta_check"
       - id: "no_courier_label"
         description: "❌ 拍到快递单/身份证/银行卡"
-        check_method: "image_meta_check"
-      - id: "no_others_visible"
-        description: "❌ 拍到他人 (朋友需打码或侧脸)"
         check_method: "image_meta_check"
       - id: "no_luxury_show"
         description: "❌ 展示昂贵物品 (避免炫富争议)"
@@ -208,77 +287,105 @@ hard_constraints:
         description: "❌ 脏乱差 (收拾好再拍)"
         check_method: "ai_judge"
 
-      # YouKei 5 条
-      - id: "no_cat_speaking"
-        description: "❌ YouKei 不开口说话 (字幕可用喵/咔/嘶 表示)"
-        pattern_match: []     # 由 ai_judge 判定
+      # YouKi 5 条 (沿用旧版, 改名 youki)
+      - id: "no_youki_speaking"
+        description: "❌ YouKi 不开口说人话 (字幕可用'喵/咔/嘶'表示)"
         check_method: "ai_judge"
       - id: "no_high_jump"
         description: "❌ 跳跃过高 (拍不到细节,后期难处理)"
         check_method: "video_meta_check"
-      - id: "no_cat_danger_action"
+      - id: "no_youki_danger_action"
         description: "❌ 危险动作 (爬窗台外侧/啃电线/上灶台)"
-        pattern_match:
-          - "爬窗台外侧"
-          - "啃电线"
-          - "上灶台"
+        pattern_match: ["爬窗台外侧", "啃电线", "上灶台"]
         check_method: "substring_match"
-      - id: "no_cat_superpower"
-        description: "❌ 超能力 (开微波炉/拧水龙头)"
-        pattern_match:
-          - "开微波炉"
-          - "拧水龙头"
+      - id: "no_youki_superpower"
+        description: "❌ 超能力 (开微波炉/拧水龙头/掏未来道具被上坤识破)"
+        pattern_match: ["开微波炉", "拧水龙头"]
         check_method: "substring_match"
-      - id: "no_cat_fight"
+      - id: "no_youki_fight"
         description: "❌ 暴力冲突 (与其他动物真打架)"
         check_method: "video_meta_check"
 
+      # Lerobot 4 条 (2026-07-18 新增)
+      - id: "no_lerobot_speaking"
+        description: "❌ Lerobot 不开口说人话 (字幕只用'嗡—''咔嚓''嘎吱''嗞—'等音效)"
+        check_method: "ai_judge"
+        forbidden_phrases:
+          - "我说"
+          - "你听"
+          - "我觉得"
+          - "我认"
+      - id: "no_lerobot_full_awakening_daytime"
+        description: "❌ Lerobot 白天不进入完全战斗模式 (只在 EP09/10/11/12 高威胁集短暂启动)"
+        check_method: "ai_judge + stage_check"
+        forbidden_when_stage: ["起势段", "攀升段"]
+      - id: "no_lerobot_break_plot"
+        description: "❌ Lerobot 不直接破坏剧情 (必须 cover 协作形式出现)"
+        check_method: "ai_judge"
+        rule_note: "Lerobot 可以'伪装故障'掩盖自己/他人, 但不能直接拆穿第三方秘密"
+      - id: "no_lerobot_reveal_to_outsiders"
+        description: "❌ Lerobot 不暴露真实身份给外人 (only 三人互相 cover 时可瞬间露出)"
+        check_method: "ai_judge"
+        rule_note: "外人包括: 修水管师傅 (EP05) / 外卖小哥 (EP08) / 宠物医生 (EP07) / 旧搭档 (EP09)"
+
 # ===== Memory Manager 给 LLM 的 prompt =====
 memory_manager_prompt: |
-  你是 Memory Manager,负责维护跨集记忆,确保本集与上下集无冲突。
+  你是 Memory Manager, 负责维护跨集记忆, 确保本集与上下集无冲突。
 
   ## 输入
-  - season-XX.json (本季骨架)
+  - season-XX.json (本季骨架, **三伪装者伪装喜剧**)
   - memory_bank.json (前 N-1 集累积事实)
   - 上一集 next_episode_seed
-  - 上一集 youkei_state (猫的位置/情感/已学技能)
+  - 上一集 character_state (上坤 + YouKi + Lerobot 各自位置/情感/cover 次数/电量)
 
   ## 输出
   ```json
   {
     "carry_over_facts": [
-      "EP01 搬进 60 平,YouKei 钻入最大纸箱",
-      "EP02 凌晨 3 点猫第一次跳上床踩肚子",
-      "EP03 猫第一次看鸟撞玻璃"
+      "EP01 三道能量同秒相撞, 三人瞬间切换伪装模式",
+      "EP02 Lerobot 干扰快递安检, YouKi 掏错道具 (小鱼干)",
+      "EP03 上坤反追踪发现是 YouKi 踩键盘, Lerobot 误判'入侵者'是猫作罢"
     ],
     "current_ep_setup": {
-      "previous_seed_must_deliver": "EP04 上集钩子: 鱼被偷 → 本集开场厨房灶台空盘",
-      "current_ep_position": "EP05,本季位置 42%",
-      "youkei_state_from_last": {
-        "position": "客厅沙发",
-        "emotion": "满足",
-        "learned_skills": ["钻纸箱", "看鸟", "偷鱼"]
+      "previous_seed_must_deliver": "EP03 上集钩子: 黑客入侵实为猫踩 → EP04 开场上坤揉眼以为看错",
+      "current_ep_position": "EP04, 本季位置 33%",
+      "character_state_from_last": {
+        "shangkun": { "position": "客厅", "emotion": "警惕", "cover_used": 1 },
+        "youki": { "position": "次卧", "emotion": "无辜", "cover_used": 2, "age_months": 7.1 },
+        "lerobot": { "position": "玄关充电", "emotion": "待机", "cover_used": 1, "battery_level": 78 }
+      },
+      "disguise_integrity_from_last": {
+        "shangkun_to_others": "full",
+        "youki_to_others": "full",
+        "lerobot_to_others": "full"
       }
     },
     "constraints_for_writer": [
-      "⚠️ 本集洗澡戏必须前置 'YouKei 从未洗过澡' (前 4 集未提)",
-      "⚠️ 本集不能让猫说话",
-      "⚠️ 本集不能露上坤正脸",
-      "⚠️ 厨房场景前置: 灶台空盘 (兑现上集偷鱼钩)"
+      "⚠️ 本集 cover 协作密度: 攀升段期望 ≥ 2-3 次, 当前已用 1, 还需 1-2 次",
+      "⚠️ 本集 Lerobot 电量从 78% 起, 末段应 ≤ 60% (战术自检耗电)",
+      "⚠️ 本集不能让 Lerobot 开口说话 (字幕只用音效)",
+      "⚠️ 本集不能让上坤识破 Lerobot 是战术单元",
+      "⚠️ 本集厨房场景前置: 修水管的师傅在屋里捡扳手 (EP05 钩子)"
     ],
-    "timeline_snapshot": "EP05 上午 10 点, 晴"
+    "timeline_snapshot": "EP04 凌晨 1 点, 404 室客厅, 暗灯"
   }
   ```
 
 # ===== Hard Check 给 LLM 的 prompt =====
 hard_check_prompt: |
-  你是 Hard Check (一票否决权),验证本集剧本是否违反硬约束。
+  你是 Hard Check (一票否决权), 验证本集剧本是否违反硬约束。
 
-  ## 4 大类硬约束
-  1. **时间线连贯性**: 与 season-XX.json + 前 N-1 集无冲突
-  2. **角色位置合理性**: 公寓布局内,无瞬移
+  ## 5 大类硬约束
+  1. **时间线连贯性**: 与 season-XX.json + 前 N-1 集无冲突 + Lerobot 电量合理
+  2. **角色位置合理性**: 公寓布局内, 三伪装者均无瞬移
   3. **钩子连续性**: 上集 seed 兑现 + 本集 seed 留出
-  4. **隐私合规红线**: 19 条规则 (老板 8 + 公寓 6 + 猫 5) 全部未触发
+  4. **三伪装者认知一致性 (新, 关键)**: 三人互不识破 (S2 才允许)
+     - 上坤没识破 YouKi/Lerobot
+     - YouKi 没识破上坤/Lerobot
+     - Lerobot 没识破上坤/YouKi (但战术模式可'锁定'上坤)
+     - cover 协作密度: 起势 1, 攀升 2-3, 风暴 3-4, 决战 4-5
+     - 伪装 vs 暴露节奏: 伪装前 60s hold, 暴露细节末 30s 彩蛋
+  5. **隐私合规红线**: 8 主角 + 6 公寓 + 5 YouKi + **4 Lerobot** = **23 条**全部未触发
 
   ## 输出
   ```json
@@ -286,18 +393,19 @@ hard_check_prompt: |
     "verdict": "PASS" | "FAIL",
     "violations": [
       {
-        "constraint_id": "no_real_face",
+        "constraint_id": "shangkun_no_recognize_lerobot",
         "severity": "HARD_FAIL",
         "shot_no": 5,
-        "evidence": "shot 5 字幕含 '我看到自己正脸'",
-        "fix_suggestion": "改为'我看到镜子里的自己'或不提脸"
+        "evidence": "shot 5 字幕含 '原来你是战术辅助单元'",
+        "fix_suggestion": "改为'果然是二手货, 容易抽风'或不提战术"
       }
     ],
     "warnings": [
+      "cover 协作密度 1 次 < 攀升段期望 2-3 次 (WARNING, 不阻塞)",
       "shot 3 阳台戏未标 safety_warning"
     ],
-    "passed_constraints": 16,
-    "total_constraints": 19,
-    "should_publish": true   # violations 为空才 true
+    "passed_constraints": 21,
+    "total_constraints": 23,
+    "should_publish": true
   }
   ```
