@@ -202,16 +202,11 @@ user_prompt_template: |
   **爽点类型**: {{ episode_spec.satisfaction_types | join(' / ') }}
   **爽点强度**: {{ episode_spec.satisfaction_intensity }}
   **关键节拍** (本剧是三伪装者 + 90s 紧凑, 必含 3 个伪装者同时出场 + cover 协作):
-  {% if episode_spec.key_moments %}
-  {% for m in episode_spec.key_moments %}
-  - {{ m }}
-  {% endfor %}
-  {% else %}
-  - shot 1: 危机开场 (蓝光/快递柜警报/警报声, 必须 ≤5s 出钩子)
+  - shot 1 (≤5s): 危机开场 (蓝光/快递柜警报/警报声, 出钩子)
   - shot 2-3: 三伪装者各自动作 + cover 协作 (上坤假装 + YouKi 喵叫 + Lerobot 抖臂)
   - shot 4-5: 反转 + Lerobot 暴露过头细节 (擦桌军用模式/签军方字体/扳手扔墙)
   - shot 6-7: 末钩子留 EP{{ episode_spec.ep + 1 }} + 三人松口气'好险'
-  {% endif %}
+  (2026-07-18 hotfix: 删除 episode_spec.key_moments 引用, StrictUndefined 模式下访问会报错; 改用硬编码 shot 蓝图, season-01.json 的 key_moments 数据留作参考)
   **节奏提示**: {{ episode_spec.rhythm_notes }}
   **下一集钩子 (本集末 3s 必须给这个 seed)**: {{ episode_spec.next_episode_seed }}
 
