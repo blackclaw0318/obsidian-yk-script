@@ -54,7 +54,7 @@ class Critic:
     # 5 视角权重 (与 critic_rubric.yaml aggregation 一致)
     WEIGHTS: ClassVar[dict[str, int]] = {
         "humor": 15,
-        "cuteness": 15,
+        "disguise": 15,  # 2026-07-18: cuteness → disguise (伪装喜剧适配)
         "continuity": 10,
         "rhythm": 5,
         "red_line": 5,
@@ -184,8 +184,8 @@ class Critic:
         """构建 Critic system prompt (5 视角详细评分标准 + 红线)
 
         P1.3: 注入 episode_spec + season_context 让 Critic 知道:
-        - 本集预期 hook_type (LLM 输出 hook.type 不匹配 → cuteness 维度扣分)
-        - 本集预期 satisfaction_types + intensity (LLM 输出不匹配 → cuteness 扣分)
+        - 本集预期 hook_type (LLM 输出 hook.type 不匹配 → disguise 维度扣分)
+        - 本集预期 satisfaction_types + intensity (LLM 输出不匹配 → disguise 扣分)
         - 当前 stage (考验是否遵循 stage_adaptations 配比)
         - next_episode_seed (LLM 末 3s 是否交付这个钩子)
         """
@@ -213,7 +213,7 @@ class Critic:
   "episode_id": <int 1-12>,
   "perspectives": [
     {"id": "humor", "score": <0-5>, "reason": "<≤100 字>", "improvement": "<≤50 字>"},
-    {"id": "cuteness", "score": <0-5>, "reason": "...", "improvement": "..."},
+    {"id": "disguise", "score": <0-5>, "reason": "...", "improvement": "..."},
     {"id": "continuity", "score": <0-5>, "reason": "...", "improvement": "..."},
     {"id": "rhythm", "score": <0-5>, "reason": "...", "improvement": "..."},
     {"id": "red_line", "score": <0-5>, "reason": "...", "improvement": "..."}
@@ -226,7 +226,7 @@ class Critic:
 ```
 
 ## 聚合公式
-total_score = humor*3 + cuteness*3 + continuity*2 + rhythm*1 + red_line*1
+total_score = humor*3 + disguise*3 + continuity*2 + rhythm*1 + red_line*1  # 2026-07-18: cuteness → disguise
 (权重 15/15/10/5/5, 每项 0-5 分, 满分 50)
 """
         return base_system + schema_desc
@@ -270,15 +270,15 @@ total_score = humor*3 + cuteness*3 + continuity*2 + rhythm*1 + red_line*1
 {spec_block}
 
 ## 🔍 一致性检查要求 (P1.3)
-- 剧本 `hook.type` 是否与预期一致? **不一致 → cuteness 维度扣 1-2 分**
-- 剧本 `hook.text` 是否兑现预期 hook_text_template 的画面/字幕/拟声词? **未兑现 → cuteness 扣 2-3 分**
-- 剧本 `satisfaction_types` 是否覆盖预期列表的 ≥ 50%? **覆盖率低 → cuteness 扣 1-2 分**
+- 剧本 `hook.type` 是否与预期一致? **不一致 → disguise 维度扣 1-2 分**
+- 剧本 `hook.text` 是否兑现预期 hook_text_template 的画面/字幕/拟声词? **未兑现 → disguise 扣 2-3 分**
+- 剧本 `satisfaction_types` 是否覆盖预期列表的 ≥ 50%? **覆盖率低 → disguise 扣 1-2 分**
 - 剧本末 3s (最后一 shot) 是否提供 next_episode_seed 的画面? **未交付 → continuity 扣 1-2 分**
 - shot 数 / 总时长 / emotion_peak 数 是否符合 rhythm_notes? **偏离 → rhythm 扣 1-2 分**
 
 请按 system prompt 中 5 个视角的评分标准逐一打分, 输出严格 JSON。
 - humor: 冲突密度 + 反转设计 + 笑点自然度 + 节奏曲线
-- cuteness: YouKei 戏份 + 招牌动作 + 反差萌 + 拟声词萌感 + **本集钩子兑现**
+- disguise: 三伪装者戏份 + cover 协作密度 + 表面 vs 真实 反差萌设计 + 拟声词反差 + **本集钩子兑现**  # 2026-07-18: cuteness → disguise
 - continuity: 上集钩子回收 + 时间线连贯 + 角色位置 + 本集钩子交付 + **next_episode_seed 可视化**
 - rhythm: shot 数 + 时长 + 情绪波峰位置 + **rhythm_notes 遵循度**
 - red_line: 19 条红线 (8+6+5), 任一违反 → score=0

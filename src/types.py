@@ -218,7 +218,7 @@ class PerspectiveScore(BaseModel):
 
     model_config = ConfigDict(extra="ignore")  # P9 fix: LLM 会加额外字段, 不拒
 
-    id: Literal["humor", "cuteness", "continuity", "rhythm", "red_line"]
+    id: Literal["humor", "disguise", "continuity", "rhythm", "red_line"]  # 2026-07-18: cuteness → disguise (伪装喜剧适配)
     score: int = Field(ge=0, le=5, description="0-5 分")
     reason: str = Field(
         max_length=200,  # P9 fix: 100 太短, LLM 实际写 140+ 字符, 200 足够
@@ -236,8 +236,9 @@ class CriticVerdict(BaseModel):
     perspectives: list[PerspectiveScore] = Field(min_length=5, max_length=5)
     total_score: int = Field(ge=0, le=50)
     verdict: Verdict
-    feedback: str = Field(max_length=200)
+    feedback: str = Field(max_length=800)  # 2026-07-18: 200→800 (LLM 实际 300-500 字, 200 严了)
     should_rewrite: bool
+    improvement_suggestion: str | None = Field(default=None, max_length=400)  # 2026-07-18 新增: FAIL 时详细改进建议
 
     @model_validator(mode="after")
     def validate_score_aggregation(self) -> CriticVerdict:
@@ -249,7 +250,7 @@ class CriticVerdict(BaseModel):
         """
         weights = {
             "humor": 15,
-            "cuteness": 15,
+            "disguise": 15,  # 2026-07-18: cuteness → disguise
             "continuity": 10,
             "rhythm": 5,
             "red_line": 5,
