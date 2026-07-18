@@ -251,7 +251,12 @@ output_schema:
       description: "≥45=EXCELLENT, 38-44=PASS, <38=FAIL"
     feedback:
       type: "string"
-      description: "≤200 字综合反馈, FAIL 时必填"
+      maxLength: 800
+      description: "≤800 字综合反馈 (2026-07-18 放宽, 原 200 太严, LLM minimax M3 平均 300-500 字), FAIL 时必填"
     should_rewrite:
       type: "boolean"
       description: "verdict=FAIL 时 true, 触发 Layer 1 重写"
+    improvement_suggestion:
+      type: "string"
+      maxLength: 400
+      description: "(新, 2026-07-18) FAIL 时详细改进建议, 原本压进 feedback 太长, 拆出来"

@@ -335,10 +335,13 @@ def fetch_season_with_fallback(
         import os
 
         token = os.environ.get("GITHUB_BACKUP_TOKEN", "")
+        branch = os.environ.get("GITHUB_OUTLINE_BRANCH", "main")  # 2026-07-18 hotfix: 拉 feat 分支
+    else:
+        branch = "main"
 
     if token:
         try:
-            fetcher = OutlineFetcher(token=token)
+            fetcher = OutlineFetcher(token=token, branch=branch)  # 2026-07-18 hotfix: 传 branch
             return fetcher.fetch_season(season_id)
         except Exception as e:
             logger.warning(f"⚠️ fetcher 失败: {e}, 直接读本地")
