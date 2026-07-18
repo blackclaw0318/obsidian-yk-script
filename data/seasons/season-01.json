@@ -337,7 +337,20 @@
       "末 5 秒钩子 (EP12 例外, EP12 改 60s 钩子 + 彩蛋)"
     ],
     "duration_target_seconds": 90,
-    "duration_tolerance_seconds": 5
+    "duration_tolerance_seconds": 5,
+    "每集字数": "300-500 字 (中文 Markdown)",
+    "shot_count": "4-8 个 (90s 紧凑伪装剧, 需要更多 shot 切来表现三伪装者动作)",
+    "duration_target_s": "85-95 (90s ± 5s 容差)",
+    "emotion_peaks_per_episode": "至少 1 个 (15% / 50% / 85% 位置)"
+  },
+  "_compat_top_level": {
+    "_note": "以下字段为 writer.yaml 模板期望字段 (2026-07-18 兼容补足, 避免 jinja2 UndefinedError)",
+    "stage_description": "起势段 (EP01-02): 建立 3 伪装者各自的双身份 + 第一次 cover 协作 | 攀升段 (EP03-06): 日常 cover 升级 + 外部人差点撞破 | 风暴段 (EP07-10): 高威胁外部来访者 + cover 极限拉扯 + 反转密集 | 决战段 (EP11-12): 双向身份几乎同时暴露 + 互相救命 + 季终反转+ S2 伏笔",
+    "stage_intensity": "起势段: ★★ (低强度, 建立世界观) | 攀升段: ★★★ (中强度, cover 升级) | 风暴段: ★★★★ (高强度, 高威胁来访) | 决战段: ★★★★★ (极强度, 双向暴露)",
+    "stage_adaptations": "起势: 情感 60% / 悬念 20% / 反转 15% / 信息 5% / 危机 0% | 攀升: 情感 30% / 悬念 30% / 反转 25% / 信息 10% / 危机 5% | 风暴: 情感 15% / 悬念 30% / 反转 25% / 信息 10% / 危机 20% | 决战: 情感 10% / 悬念 25% / 反转 25% / 信息 10% / 危机 30%",
+    "hook_verifier_keywords": ["?", "突然", "原来", "居然", "下一秒", "好险", "证据", "警报", "没想到", "身份暴露"],
+    "satisfaction_verifier_keywords": ["感动", "好险", "原来", "没想到", "我以为是", "战术", "特工", "2077"],
+    "hook_strength_min": "起势段: 中等 (钩子 1/集 cover) | 攀升段: 强 (钩子 2-3/集) | 风暴段: 强 (钩子 3-4/集) | 决战段: 极强 (钩子 4-5/集 + S2 伏笔)"
   },
   "_provenance": {
     "replaced_at": "2026-07-18T20:09:00+08:00",

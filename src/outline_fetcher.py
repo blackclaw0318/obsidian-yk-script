@@ -315,7 +315,8 @@ def make_default_fetcher() -> OutlineFetcher:
             "GITHUB_BACKUP_TOKEN 环境变量未设置 (需要 PAT 含 obsidian-yk-script: Read scope)",
         )
     repo = os.environ.get("GITHUB_OUTLINE_REPO", DEFAULT_REPO)
-    return OutlineFetcher(token=token, repo=repo)
+    branch = os.environ.get("GITHUB_OUTLINE_BRANCH", "main")  # 2026-07-18 加: 支持 feat 分支
+    return OutlineFetcher(token=token, repo=repo, branch=branch)
 
 
 def fetch_season_with_fallback(
