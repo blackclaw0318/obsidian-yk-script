@@ -229,10 +229,10 @@ class PerspectiveScore(BaseModel):
     id: Literal["humor", "disguise", "continuity", "rhythm", "red_line"]  # 2026-07-18: cuteness → disguise (伪装喜剧适配)
     score: int = Field(ge=0, le=5, description="0-5 分")
     reason: str = Field(
-        max_length=200,  # P9 fix: 100 太短, LLM 实际写 140+ 字符, 200 足够
+        max_length=800,  # 2026-07-18: 200→800 (LLM 实际 140-400 字, 200 严了, 跟 feedback 一样)
         description="评审理由",
     )
-    improvement: str = Field(default="", max_length=100, description="改进建议")  # P9 fix: 50 太短
+    improvement: str = Field(default="", max_length=400, description="改进建议")  # 2026-07-18: 100→400 (跟 improvement_suggestion 对齐)
 
 
 class CriticVerdict(BaseModel):
