@@ -115,7 +115,7 @@
       "hook_type": "反转钩",
       "hook_subtype": "动机反转",
       "hook_text_template": "上坤的屏幕突然弹出红色警报: '检测到未知入侵, 防火墙已被突破三层。'",
-      "satisfaction_types": ["反转钩", "身份碾压"],
+      "satisfaction_types": ["悬念揭秘", "身份碾压"],
       "satisfaction_intensity": "★★★★",
       "comedy_beats": [
         "上坤反追踪时的架势像要开战, 结果看到猫瞬间垮脸",
@@ -157,7 +157,7 @@
       "hook_type": "反转钩",
       "hook_subtype": "危机误判",
       "hook_text_template": "门锁'咔哒'一声被撬开, 一个穿工装的男人径直走进了厨房。",
-      "satisfaction_types": ["反转钩", "身份碾压"],
+      "satisfaction_types": ["悬念揭秘", "身份碾压"],
       "satisfaction_intensity": "★★★★",
       "comedy_beats": [
         "修水管师傅弯腰捡扳手, 差点和地上的麻醉针脸贴脸, 被 YouKi 一爪子扒走",
@@ -199,7 +199,7 @@
       "hook_type": "危机钩",
       "hook_subtype": "暴露危机",
       "hook_text_template": "宠物医院医生指着 X 光片: '这猫脖子上……怎么有个金属球？'",
-      "satisfaction_types": ["悬念揭秘", "危机钩"],
+      "satisfaction_types": ["悬念揭秘", "身份碾压"],
       "satisfaction_intensity": "★★★★",
       "comedy_beats": [
         "YouKi 藏道具的时候腮帮子鼓成仓鼠, 上坤:'你嘴里藏什么了？'它立刻咽下去",
@@ -241,7 +241,7 @@
       "hook_type": "危机钩",
       "hook_subtype": "高威胁来访",
       "hook_text_template": "敲门声响起, 门外的人说: '老坤, 我知道你在里面。'",
-      "satisfaction_types": ["危机钩", "悬念揭秘"],
+      "satisfaction_types": ["身份碾压", "悬念揭秘"],
       "satisfaction_intensity": "★★★★★",
       "comedy_beats": [
         "搭档在门口念'黄河远上白云间', 上坤在里面憋得脸通红不能接",
